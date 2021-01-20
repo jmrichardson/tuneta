@@ -1,0 +1,3 @@
+pandas-ta
+optuna
+pathos
