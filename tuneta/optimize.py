@@ -27,12 +27,17 @@ def _weighted_spearman(y, y_pred, w):
 
 
 def objective(self, trial, X, y, weights):
+    # import joblib
+    # joblib.dump([X, y], 'state/Xy.job')
+    # Xold, yold = joblib.load('state/Xy.job')
+    # y == yold
     res = eval(self.function)
     res = pd.DataFrame(res, index=X.index)  # Convert to dataframe
     res = res.iloc[:, self.idx]  # Only tune on one column (maximize)
     res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
     self.res_y.append(res_y)
-    return _weighted_spearman(np.array(y), res_y, weights)  # Return correlation to y
+    ws = _weighted_spearman(np.array(y), res_y, weights)
+    return ws
 
 
 def trial(self, trial, X):
