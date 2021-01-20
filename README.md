@@ -19,8 +19,9 @@ pip install tuneta
 
 ### Example Usage
 
-```
-
+```python
+import yfinance as yf
+ohlcv = yf.download("SPY", period="ytd", interval="1d", auto_adjust=True)
 
 
 ```
