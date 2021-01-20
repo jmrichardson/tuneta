@@ -1,25 +1,3 @@
-<p align="center">
-  <a href="https://github.com/jmrichardson/tuneta">
-    <img src="images/logo.png" alt="tuneTA">
-  </a>
-</p>
-
-### Features
-
-* Given financial prices (OHLCV) and return (X and y respectively), optimize technical indicator parameters to maximize the correlation to return.  Multiple ranges can be defined to target specific periods of time
-* Select the top X optimized indicators with most correlation to return and select X with the least correlation to each other with the goal of improving downstream ML models with uncorrelated features
-* Persists state to create identical indicators on multiple datasets (train/test)
-* Parallel processing
-
-### Install
-
-```python
-pip install tuneta
-```
-
-### Example Usage
-
-```python
 import yfinance as yf
 import pandas as pd
 from pandas_ta import percent_return
@@ -51,8 +29,5 @@ if __name__ == "__main__":
     # Add same indicators to X_test
     features = indicators.transform(X_test)
     X_test = pd.concat([X_test, features], axis=1)
-```
 
-
-
-
+    print("done")

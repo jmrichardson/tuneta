@@ -7,27 +7,32 @@ from scipy.stats import rankdata
 from tuneta.config import *
 from tuneta.optimize import Optimize
 import pandas_ta as pta
+import warnings
 
 
 class TuneTA():
 
-    def __init__(self):
+    def __init__(self, n_jobs=multiprocessing.cpu_count() - 1):
         self.result = []
         self.fitted = []
+        self.n_jobs = n_jobs
 
     def fit(self, X, y, trials=5, indicators=indicators, ranges=ranges, tune_series=tune_series,
             tune_params=tune_params, tune_column=tune_column):
+        X.columns = X.columns.str.lower()  # columns must be lower case
 
-        pool = ProcessPool(nodes=multiprocessing.cpu_count() - 2)
+        pool = ProcessPool(nodes=self.n_jobs)
 
         for low, high in ranges:
+            if high > len(X):
+                raise ValueError(f"Range high:{high} > length of X:{len(X)}")
             for ind in indicators:
                 fn = f"{ind}("
                 sig = inspect.signature(eval(ind))
                 for param in sig.parameters.values():
                     param = str(param).split("=")[0].strip()
-                    if param == "open_": param = "open"
-                    print(param)
+                    if param == "open_":
+                        param = "open"
                     if param in tune_series:
                         fn += f"X.{param}, "
                     elif param in tune_params:
@@ -39,21 +44,26 @@ class TuneTA():
                 self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials).fit, X, y, idx=idx))
         self.fitted = [fit.get() for fit in self.fitted]  # Get results of jobs
 
-    def prune(self, top=.3, studies=2):
+    def prune(self, top=2, studies=2):
+
+        if len(self.fitted) <= studies:
+            warnings.warn(f"Existing studies {len(self.fitted)} is <= {studies}.  Abort prune", RuntimeWarning)
+            return
+
+        if top <= studies:
+            raise ValueError(f"top:{top} must be > studies:{studies}")
 
         fitness = []
         for t in self.fitted:
             fitness.append(t.study.best_value)  # get fitness of study
         fitness = np.array(fitness)  # Fitness of each fitted study
 
-        hof = round(top * len(fitness))  # Hall of fame - top x of studies
-        self.n_components = 2  # Least correlated studies in hall of fame
-        fitness = fitness.argsort()[::-1][:hof]  # Get sorted fitness indices of HOF
+        fitness = fitness.argsort()[::-1][:top]  # Get sorted fitness indices of HOF
 
         # Gets best trial feature of each study in HOF
         features = []
-        hof_studies = [self.fitted[i] for i in fitness]  # Get HOF studies
-        for study in hof_studies:
+        top_studies = [self.fitted[i] for i in fitness]  # Get HOF studies
+        for study in top_studies:
             features.append(study.res_y[study.study.best_trial.number])
         features = np.array(features)  # Features of HOF studies
 
@@ -64,8 +74,8 @@ class TuneTA():
         np.fill_diagonal(correlations, 0.)
 
         # Iteratively remove least fit individual of most correlated pairs of studies
-        components = list(range(hof))
-        indices = list(range(hof))
+        components = list(range(top))
+        indices = list(range(top))
         while len(components) > studies:
             most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
             worst = max(most_correlated)
@@ -76,23 +86,13 @@ class TuneTA():
 
         self.fitted = [self.fitted[i] for i in fitness[components]]
 
-    def transform(self, X, y):
-
-        pool = ProcessPool(nodes=multiprocessing.cpu_count() - 2)
+    def transform(self, X):
+        X.columns = X.columns.str.lower()  # columns must be lower case
+        pool = ProcessPool(nodes=self.n_jobs)
         self.result = []
         for ind in self.fitted:
-            self.result.append(pool.apipe(ind.transform, X, y))
+            self.result.append(pool.apipe(ind.transform, X))
         self.result = [res.get() for res in self.result]
         return pd.concat(self.result, axis=1)
 
-
-if __name__ == "__main__":
-
-    import joblib
-    X, y_shb, y, weights = joblib.load('state/Xyw.job')
-
-    inds = TuneTA()
-    inds.fit(X, y, indicators=["pta.thermo", "pta.macd", "pta.ao"], trials=5)
-    inds.prune()
-    out = inds.transform(X, y)
 

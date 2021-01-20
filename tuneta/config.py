@@ -1,3 +1,6 @@
+# Search ranges
+# ranges = [(0, 500), (501, 3600), (3601, 15000)]
+ranges = [(0, 10), (11, 50), (51, 100)]
 
 # Dont use ichimoku or DPO (data leakage)
 indicators = [
@@ -38,6 +41,8 @@ indicators = [
     'pta.zlma',
 ]
 
+### Advanced configuration below ###
+
 # Series data
 tune_series = ['open', 'high', 'low', 'close', 'volume']
 
@@ -46,10 +51,7 @@ tune_params = ['fast', 'slow', 'signal', 'length', 'short', 'drift', 'max_lookba
                'lower_length', 'upper_length', 'lookback', 'medium', 'slow_w', 'roc1', 'roc2', 'roc3', 'roc4',
                'sma1', 'sma2', 'sma3', 'sma4', 'offset']
 
-# Search ranges
-ranges = [(0, 500), (501, 3600), (3601, 15000)]
-
-# Index of column to maximize if indicator returns dataframe
+# Index of column to maximize if indicator returns multiple
 tune_column = {
     "pta.aobv": 5,
     "pta.thermo": 2,
