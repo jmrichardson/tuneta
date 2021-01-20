@@ -1,7 +1,7 @@
 # Custom
 state/
 .idea/
-
+.gitattributes
 
 
 # Byte-compiled / optimized / DLL files
