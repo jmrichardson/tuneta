@@ -49,7 +49,7 @@ tune_series = ['open', 'high', 'low', 'close', 'volume']
 # Parameters to tune
 tune_params = ['fast', 'slow', 'signal', 'length', 'short', 'drift', 'max_lookback', 'min_lookback', 'initial',
                'lower_length', 'upper_length', 'lookback', 'medium', 'slow_w', 'roc1', 'roc2', 'roc3', 'roc4',
-               'sma1', 'sma2', 'sma3', 'sma4', 'offset']
+               'sma1', 'sma2', 'sma3', 'sma4', 'offset', 'scalar']
 
 # Index of column to maximize if indicator returns multiple
 tune_column = {

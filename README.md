@@ -8,8 +8,14 @@
 
 * Given financial prices (OHLCV) and return (X and y respectively), optimize technical indicator parameters to maximize the correlation to return.  Multiple ranges can be defined to target specific periods of time
 * Select the top X optimized indicators with most correlation to return and select X with the least correlation to each other with the goal of improving downstream ML models with uncorrelated features
-* Persists state to create identical indicators on multiple datasets (train/test)
+* Persists state to create identical indicators on multiple datasets (train/test).
 * Parallel processing
+
+### Overview
+
+"A picture is worth a thousand words"
+
+
 
 ### Install
 
@@ -41,7 +47,7 @@ if __name__ == "__main__":
                    trials=5  # Number of optimization trials per indicator per range
                    )
 
-    # Take 10 tuned indicators, and select the 3 least correlated with each other
+    # Take top 10 correlated indicators to return, and then select the 3 least correlated with each other
     indicators.prune(top=10, studies=3)
 
     # Add indicators to X_train

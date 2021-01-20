@@ -47,11 +47,12 @@ class Optimize():
         self.n_trials = n_trials
         self.res_y = []
 
-    def fit(self, X, y=None, weights=None, idx=0):
+    def fit(self, X, y=None, weights=None, idx=0, verbose=False):
         if weights is None:
             weights = np.ones(len(y))
         self.idx = idx
-        optuna.logging.set_verbosity(optuna.logging.ERROR)
+        if not verbose:
+            optuna.logging.set_verbosity(optuna.logging.ERROR)
         self.study = optuna.create_study(direction='maximize')
         self.study.optimize(lambda trial: objective(self, trial, X, y, weights), n_trials=self.n_trials)
         return self
@@ -63,3 +64,12 @@ class Optimize():
             # col = f"{col}_{p}_{v}"
         return features
 
+
+if __name__ == "__main__":
+    import joblib
+    X, y_shb, y_ret, weights = joblib.load('state/Xyw.job')
+    y = y_ret
+    fn = "pta.thermo(X.high, X.low, length=trial.suggest_int('length', 2, 10000), )"
+    opt = Optimize(function=fn, n_trials=5)
+    opt.fit(X, y, idx=2)
+    features = opt.transform(X)
