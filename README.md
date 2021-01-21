@@ -4,6 +4,8 @@
   </a>
 </p>
 
+TuneTA optimizes a broad set of technical indicators to maximize its correlation to a user defined target variable.  The set of tuned indicators can be reduced to the most correlated with the target with the least correlation with each other. TuneTA maintains its state of optimized and reduced indicators which can be used to easily add to multiple data sets (train, validation, test).
+
 ### Features
 
 * Given financial prices (OHLCV) and return (X and y respectively), optimize technical indicator parameters to maximize the correlation to return.  Multiple ranges can be defined to target specific periods of time
@@ -15,7 +17,19 @@
 
 "A picture is worth a thousand words"
 
+<p align="center">
+  <a href="https://github.com/jmrichardson/tuneta">
+    <img src="images/ico.jpg" alt="tuneTA">
+  </a>
+</p>
 
+<p align="center">
+  <a href="https://github.com/jmrichardson/tuneta">
+    <img src="images/ic2.jpg" alt="tuneTA">
+  </a>
+</p>
+
+### Install
 
 ### Install
 

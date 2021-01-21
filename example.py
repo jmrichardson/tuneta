@@ -15,7 +15,8 @@ if __name__ == "__main__":
     indicators = TuneTA(n_jobs=2)
     indicators.fit(X_train, y_train,
                    indicators=["pta.rsi"],  # Indicators to tune/optimize
-                   ranges=[(1, 30), (31, 90), (91, 180)],  # Period ranges to tune for each indicator
+                   # ranges=[(1, 30), (31, 90), (91, 180)],  # Period ranges to tune for each indicator
+                   ranges=[(1, 180)],  # Period ranges to tune for each indicator
                    trials=200  # Number of optimization trials per indicator per range
                    )
 
