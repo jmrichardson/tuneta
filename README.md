@@ -25,7 +25,7 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
-    <img src="images/ic2.jpg" alt="tuneTA">
+    <img src="images/icl2.jpg" alt="tuneTA">
   </a>
 </p>
 

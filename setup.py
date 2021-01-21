@@ -19,14 +19,17 @@ with open("README.md", "r") as fh:
 
 setup(
     name="tuneta",
-    version="0.1.01",
+    version="0.1.02",
     author="John Richardson",
     author_email="jmrichardson@gmail.com",
-    description="Optimize technical indicators for machine learning",
-    long_description=long_description,
+    # description="Optimize technical indicators for machine learning",
+    description="tuneta",
+    long_description="tuneta"
+    # long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/jmrichardson/tuneta",
-    keywords="technical analysis optimize tune indicators machine learning optuna",
+    # keywords="technical analysis optimize tune indicators machine learning optuna",
+    keywords="",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
