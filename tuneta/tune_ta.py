@@ -7,7 +7,11 @@ from scipy.stats import rankdata
 from tuneta.config import *
 from tuneta.optimize import Optimize
 import pandas_ta as pta
+from finta import TA as fta
+import talib as tta
+
 import warnings
+import re
 
 
 class TuneTA():
@@ -29,12 +33,22 @@ class TuneTA():
                 raise ValueError(f"Range high:{high} > length of X:{len(X)}")
             for ind in indicators:
                 fn = f"{ind}("
-                sig = inspect.signature(eval(ind))
-                for param in sig.parameters.values():
-                    param = str(param).split("=")[0].strip()
+                if ind[0:3] == "tta":
+                    usage = eval(f"{ind}.__doc__").split(")")[0].split("(")[1]
+                    params = re.sub('[^0-9a-zA-Z_\s]', '', usage).split()
+                else:
+                    sig = inspect.signature(eval(ind))
+                    params = sig.parameters.values()
+
+                for param in params:
+                    param = re.split(':|=', str(param))[0].strip()
                     if param == "open_":
                         param = "open"
-                    if param in tune_series:
+                    if param == "real":
+                        fn += f"X.close, "
+                    elif param == "ohlc":
+                        fn += f"X, "
+                    elif param in tune_series:
                         fn += f"X.{param}, "
                     elif param in tune_params:
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
@@ -47,13 +61,11 @@ class TuneTA():
 
     def prune(self, top=2, studies=1):
 
-        if len(self.fitted) <= studies:
-            warnings.warn(f"Existing studies {len(self.fitted)} is <= {studies}.  Abort prune", RuntimeWarning)
+        if top >= len(self.fitted) or studies >= len(self.fitted):
+            print("Cannot prune because top or studies is >= tuned indicators")
             return
         if top <= studies:
-            raise ValueError(f"top:{top} must be > studies:{studies}")
-        if top >= len(self.fitted):
-            raise ValueError(f"top:{top} must be < fitted studies:{len(self.fitted)}")
+            raise ValueError(f"top {top} must be > studies {studies}")
 
         fitness = []
         for t in self.fitted:
@@ -100,10 +112,13 @@ class TuneTA():
 
 if __name__ == "__main__":
     import joblib
-    X, y_shb, y, weights = joblib.load('state/Xyw.job')
+    X, y = joblib.load('state/Xy.job')
 
-    inds = TuneTA(verbose=False)
-    inds.fit(X, y, indicators=["pta.rsi", "pta.macd", "pta.cci", "pta.adx"], trials=5)
+    inds = TuneTA(verbose=True)
+    # inds.fit(X, y, indicators=["fta.SMA"], ranges=[(1, 100)], trials=5)
+    # inds.fit(X, y, indicators=["pta.sma"], ranges=[(1, 100)], trials=5)
+    # inds.fit(X, y, indicators=['tta.BBANDS', 'tta.DEMA', 'tta.EMA',], ranges=[(0, 100)], trials=5)
+    inds.fit(X, y, indicators=['tta.BBANDS', 'tta.DEMA'], ranges=[(1, 100)], trials=5)
     inds.prune(top=3, studies=2)
     out = inds.transform(X)
     print("done")

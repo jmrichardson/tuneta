@@ -8,10 +8,15 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 
 ### Features
 
-* Given financial prices (OHLCV) and return (X and y respectively), optimize technical indicator parameters to maximize the correlation to return.  Multiple ranges can be defined to target specific periods of time
-* Select the top X optimized indicators with most correlation to return and select X with the least correlation to each other with the goal of improving downstream ML models with uncorrelated features
-* Persists state to create identical indicators on multiple datasets (train/test).
+* Given financial prices (OHLCV) and return (X and y respectively), optimizes technical indicator parameters to maximize the correlation to return.  Multiple ranges can be defined to target specific periods of time
+* Select the top X optimized indicators with most correlation to return, and select X with the least correlation to each other with the goal of improving downstream ML models
+* Persists state to create identical indicators on multiple datasets (train, validation, test)
+* Supports technical indicators from the following packages
+  * [Pandas TA](https://github.com/twopirllc/pandas-ta)
+  * [TA-Lib](https://github.com/mrjbq7/ta-lib)
+  * [FinTA](https://github.com/peerchemist/finta)
 * Parallel processing
+
 
 ### Overview
 
@@ -19,13 +24,13 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
-    <img src="images/ico.jpg" alt="tuneTA">
+    <img src="images/ico.jpg" alt="tuneTA" width="600">
   </a>
 </p>
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
-    <img src="images/icl2.jpg" alt="tuneTA">
+    <img src="images/ico2.jpg" alt="tuneTA" width="600">
   </a>
 </p>
 

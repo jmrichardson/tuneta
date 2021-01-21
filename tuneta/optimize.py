@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from scipy.stats import rankdata
 import pandas_ta as pta
+from finta import TA as fta
+import talib as tta
 
 
 def _weighted_pearson(y, y_pred, w):
@@ -32,6 +34,8 @@ def objective(self, trial, X, y, weights):
     # Xold, yold = joblib.load('state/Xy.job')
     # y == yold
     res = eval(self.function)
+    if isinstance(res, tuple):
+        res = pd.DataFrame(res).T
     res = pd.DataFrame(res, index=X.index)  # Convert to dataframe
     res = res.iloc[:, self.idx]  # Only tune on one column (maximize)
     res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
@@ -42,7 +46,10 @@ def objective(self, trial, X, y, weights):
 
 def trial(self, trial, X):
     res = eval(self.function)
-    return pd.DataFrame(res, index=X.index)
+    if isinstance(res, tuple):
+        res = pd.DataFrame(res).T
+    res = pd.DataFrame(res, index=X.index)
+    return res
 
 
 class Optimize():

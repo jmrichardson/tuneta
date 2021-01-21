@@ -24,7 +24,7 @@ setup(
     author_email="jmrichardson@gmail.com",
     # description="Optimize technical indicators for machine learning",
     description="tuneta",
-    long_description="tuneta"
+    long_description="tuneta",
     # long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/jmrichardson/tuneta",

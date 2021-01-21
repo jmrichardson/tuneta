@@ -1,3 +1,4 @@
 pandas-ta
+finta
 optuna
 pathos
