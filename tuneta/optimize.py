@@ -5,6 +5,7 @@ from scipy.stats import rankdata
 import pandas_ta as pta
 from finta import TA as fta
 import talib as tta
+import re
 
 
 def _weighted_pearson(y, y_pred, w):
@@ -36,6 +37,8 @@ def objective(self, trial, X, y, weights):
     res = eval(self.function)
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
+    if len(res) != len(X):
+        raise RuntimeError("Unequal indicator result")
     res = pd.DataFrame(res, index=X.index)  # Convert to dataframe
     res = res.iloc[:, self.idx]  # Only tune on one column (maximize)
     res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
@@ -49,6 +52,10 @@ def trial(self, trial, X):
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
     res = pd.DataFrame(res, index=X.index)
+    if res.iloc[:, 0].name == 0:
+        fn = self.function.split("(")[0]
+        params = re.sub('[^0-9a-zA-Z_:]', '', str(self.study.best_params))
+        res.columns = [f"{fn}_{params}_{col}" for col in res.columns]
     return res
 
 
@@ -85,3 +92,6 @@ if __name__ == "__main__":
     opt = Optimize(function=fn, n_trials=5)
     opt.fit(X, y, idx=2)
     features = opt.transform(X)
+
+    pta.squeeze(X.high, X.low, X.close)
+    pta.squeeze(X.high, X.low, X.close, offset=100)

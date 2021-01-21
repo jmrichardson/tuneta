@@ -29,9 +29,15 @@ class TuneTA():
         pool = ProcessPool(nodes=self.n_jobs)
 
         for low, high in ranges:
-            if high > len(X):
-                raise ValueError(f"Range high:{high} > length of X:{len(X)}")
+            if low <=1:
+                raise ValueError("Range low must be > 1")
+            if high >= len(X):
+                raise ValueError(f"Range high:{high} must be > length of X:{len(X)}")
             for ind in indicators:
+                idx = 0
+                if ":" in ind:
+                    idx = int(ind.split(":")[1])
+                    ind = ind.split(":")[0]
                 fn = f"{ind}("
                 if ind[0:3] == "tta":
                     usage = eval(f"{ind}.__doc__").split(")")[0].split("(")[1]
@@ -53,9 +59,6 @@ class TuneTA():
                     elif param in tune_params:
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
                 fn += ")"
-                idx = 0
-                if ind in tune_column:
-                    idx = tune_column.get(ind)
                 self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials).fit, X, y, idx=idx, verbose=self.verbose))
         self.fitted = [fit.get() for fit in self.fitted]  # Get results of jobs
 
@@ -107,7 +110,8 @@ class TuneTA():
         for ind in self.fitted:
             self.result.append(pool.apipe(ind.transform, X))
         self.result = [res.get() for res in self.result]
-        return pd.concat(self.result, axis=1)
+        res = pd.concat(self.result, axis=1)
+        return res
 
 
 if __name__ == "__main__":
@@ -118,7 +122,28 @@ if __name__ == "__main__":
     # inds.fit(X, y, indicators=["fta.SMA"], ranges=[(1, 100)], trials=5)
     # inds.fit(X, y, indicators=["pta.sma"], ranges=[(1, 100)], trials=5)
     # inds.fit(X, y, indicators=['tta.BBANDS', 'tta.DEMA', 'tta.EMA',], ranges=[(0, 100)], trials=5)
-    inds.fit(X, y, indicators=['tta.BBANDS', 'tta.DEMA'], ranges=[(1, 100)], trials=5)
-    inds.prune(top=3, studies=2)
+    # inds.fit(X, y, indicators=['tta.BBANDS:1', 'fta.SMA', 'pta.sma', 'tta.DEMA'], ranges=[(1, 100)], trials=5)
+    # """
+    # inds.fit(X, y, indicators=["fta.SMM"], ranges=[(2, 100)], trials=5)
+    # """
+    indicators = ['fta.SMA', 'fta.SMM', 'fta.SSMA', 'fta.EMA', 'fta.DEMA', 'fta.TEMA', 'fta.TRIMA', 'fta.TRIX', 'fta.VAMA', 'fta.ER', 'fta.KAMA', 'fta.ZLEMA',
+    'fta.WMA', 'fta.HMA', 'fta.EVWMA', 'fta.VWAP', 'fta.SMMA', 'fta.FRAMA', 'fta.MACD', 'fta.PPO', 'fta.VW_MACD', 'fta.EV_MACD', 'fta.MOM', 'fta.ROC', 'fta.RSI', 'fta.IFT_RSI',
+    'fta.TR', 'fta.ATR', 'fta.SAR', 'fta.BBANDS', 'fta.BBWIDTH', 'fta.MOBO', 'fta.PERCENT_B', 'fta.KC', 'fta.DO', 'fta.DMI', 'fta.ADX', 'fta.PIVOT', 'fta.PIVOT_FIB', 'fta.STOCH',
+    'fta.STOCHD', 'fta.STOCHRSI', 'fta.WILLIAMS', 'fta.UO', 'fta.AO', 'fta.MI', 'fta.VORTEX', 'fta.KST', 'fta.TSI', 'fta.TP', 'fta.ADL', 'fta.CHAIKIN', 'fta.MFI', 'fta.OBV', 'fta.WOBV',
+    'fta.VZO', 'fta.PZO', 'fta.EFI', 'fta.CFI', 'fta.EBBP', 'fta.EMV', 'fta.CCI', 'fta.COPP', 'fta.BASP', 'fta.BASPN', 'fta.CMO', 'fta.CHANDELIER', 'fta.QSTICK', 'fta.TMF',
+    'fta.WTO', 'fta.FISH', 'fta.APZ', 'fta.SQZMI', 'fta.VPT', 'fta.FVE', 'fta.VFI', 'fta.MSD', 'fta.STC',]
+    for i in indicators:
+        print(i)
+        inds = TuneTA(verbose=True)
+        inds.fit(X, y, indicators=[i], ranges=[(2, 100)], trials=5)
+
+
+    # """
+    # inds.fit(X, y, indicators=['tta.BETA'], ranges=[(5, 100)], trials=5)
+
+    # inds.prune(top=3, studies=2)
     out = inds.transform(X)
     print("done")
+
+
+    # pta.vp(X.close, X.volume)

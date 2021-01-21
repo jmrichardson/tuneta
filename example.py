@@ -11,7 +11,6 @@ if __name__ == "__main__":
     y = percent_return(X.Close, offset=-1)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3, shuffle=False)
 
-    # Default configuration is to tune all supported indicators
     indicators = TuneTA(n_jobs=2)
     indicators.fit(X_train, y_train,
                    indicators=["pta.rsi"],  # Indicators to tune/optimize

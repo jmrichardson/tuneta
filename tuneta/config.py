@@ -7,10 +7,12 @@ indicators = ["pta.rsi", "pta.mom", "pta.macd"]
 # Series data
 tune_series = ['open', 'high', 'low', 'close', 'volume']
 
+# Add back in:  'offset'
+
 # Parameters to tune
-tune_params = ['fast', 'slow', 'signal', 'length', 'short', 'drift', 'max_lookback', 'min_lookback', 'initial',
+tune_params = ['width', 'fast', 'slow', 'signal', 'length', 'short', 'drift', 'max_lookback', 'min_lookback', 'initial',
                'lower_length', 'upper_length', 'lookback', 'medium', 'slow_w', 'roc1', 'roc2', 'roc3', 'roc4',
-               'sma1', 'sma2', 'sma3', 'sma4', 'offset', 'scalar', 'width', 'long', 'atr_length', 'high_length',
+               'sma1', 'sma2', 'sma3', 'sma4', 'scalar', 'width', 'long', 'atr_length', 'high_length',
                'low_length', 'kc_length', 'bb_length', 'mom_length', 'swma_length', 'rvi_length', 'period',
                'er', 'ema_fast', 'ema_slow', 'period_fast', 'period_slow', 'rsi_period', 'wma_period', 'atr_period',
                'upper_period', 'lower_period', 'stoch_period', 'slow_period', 'fast_period', 'r1', 'r2', 'r3', 'r4',
@@ -32,3 +34,5 @@ tune_column = {
     "pta.aroon": 2,
     "pta.macd": 2,
 }
+
+
