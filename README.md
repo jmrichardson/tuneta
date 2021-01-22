@@ -23,10 +23,10 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 TuneTA simplifies the process of optimizing technical indicators and selecting the best (measured by correlation) while minimizing the correlation between each of the best (optional).  Generally speaking, machine learning models perform better when provided informative inputs that are not strongly correlated.  At a high level, TuneTA performs the following steps:
 
 1.  For each indicator, use an intelligent algorithm to find the best parameters which maximizes its correlation to the user defined target (ie next x day return).  Note the target can be a subset of X which is common for finanical lableing such as with [triple barrier labels](https://towardsdatascience.com/financial-machine-learning-part-1-labels-7eeed050f32e).
-2.  Optionally, the tuned parameters can be reduced by selection the top x measured by correlation, then selecting the least correlated.  This is done by iteratively removing the least correlated of each of the strongest pairs.
-3.  Finally, TuneTA will use the best parameters for each indicator created
+2.  Optionally, the tuned parameters can be reduced by selection the top x measured by correlation, then selecting the least correlated.  This is done by iteratively removing the least correlated of each of the strongest correlated pairs.
+3.  Finally, TuneTA will generate each indicator with the best parameters
 
-To illustrate using a toy example, 19 indicators from the excellent Pandas-TA are optimized using the "length" parameter as shown below (constrained by "length" parameter to graph in 2D).  The dotted black line indicates the "length" that optimizes the given indicator (correlation to next day return).  
+To illustrate using a toy example, 19 indicators from the excellent Pandas-TA are optimized using the "length" parameter as shown below (constrained by "length" parameter to graph in 2D).  The dotted black line indicates the "length" that optimizes the given indicator (max correlation to next day return).  Internally, TuneTA uses [Optuna](https://optuna.org) to efficiently search for the optimal "length" setting:
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
@@ -34,7 +34,7 @@ To illustrate using a toy example, 19 indicators from the excellent Pandas-TA ar
   </a>
 </p>
 
-
+The following chart shows of the top 10 strongest correlated indicators, 5 are chosen from the 10 which are least correlated with each other.  Note 10 and 5 are user defined.
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
@@ -63,18 +63,18 @@ from sklearn.model_selection import train_test_split
 if __name__ == "__main__":
     # Download data set from yahoo, calculate next day return and split into train and test
     X = yf.download("SPY", period="10y", interval="1d", auto_adjust=True)
-    y = percent_return(X.close)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3)
+    y = percent_return(X.Close, offset=-1)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3, shuffle=False)
 
-    indicators = TuneTA(n_jobs=2)
+    indicators = TuneTA(n_jobs=2, verbose=True)  # Initialize with 2 cores and show trial results
     indicators.fit(X_train, y_train,
-                   indicators=["pta.macd", "pta.ao"],  # Indicators to tune/optimize
-                   ranges=[(0, 20), (21, 100)],  # Period ranges to tune for each indicator
-                   trials=5  # Number of optimization trials per indicator per range
+                   indicators=["tta.MACD", "tta.ULTOSC", "pta.rsi", "fta.OBV"],  # Indicators to tune/optimize
+                   ranges=[(2, 180)],  # Period range(s) to tune for each indicator
+                   trials=30  # Number of optimization trials per indicator per range
                    )
 
-    # Take top 10 correlated indicators to return, and then select the 3 least correlated with each other
-    indicators.prune(top=10, studies=3)
+    # Take 10 tuned indicators, and select the 3 least correlated with each other
+    indicators.prune(top=3, studies=2)
 
     # Add indicators to X_train
     features = indicators.transform(X_train)
