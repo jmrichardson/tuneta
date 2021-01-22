@@ -83,15 +83,3 @@ class Optimize():
             # col = f"{col}_{p}_{v}"
         return features
 
-
-if __name__ == "__main__":
-    import joblib
-    X, y_shb, y_ret, weights = joblib.load('state/Xyw.job')
-    y = y_ret
-    fn = "pta.thermo(X.high, X.low, length=trial.suggest_int('length', 2, 10000), )"
-    opt = Optimize(function=fn, n_trials=5)
-    opt.fit(X, y, idx=2)
-    features = opt.transform(X)
-
-    pta.squeeze(X.high, X.low, X.close)
-    pta.squeeze(X.high, X.low, X.close, offset=100)
