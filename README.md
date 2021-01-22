@@ -26,7 +26,7 @@ TuneTA simplifies the process of optimizing technical indicators and selecting t
 2.  Optionally, the tuned parameters can be reduced by selecting the top x measured by correlation, then selecting the least intercorrelated.
 3.  Finally, TuneTA will generate each indicator with the best parameters
 
-To illustrate using a toy example, 19 indicators from Pandas-TA are optimized using the "length" parameter as shown below (constrained by "length" parameter to graph in 2D).  The dotted black line indicates the "length" that optimizes the given indicator (max correlation to next day return).  Internally, TuneTA uses [Optuna](https://optuna.org) to efficiently search for the optimal "length" setting:
+To illustrate using a toy example, 19 indicators from Pandas-TA are optimized using the "length" parameter as shown below (constrained by "length" parameter to graph in 2D).  The dotted black line indicates the "length" that optimizes the given indicator (max correlation to next day return).  Internally, TuneTA uses [Optuna](https://optuna.org) to efficiently search for the optimal "length" value:
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
@@ -34,15 +34,13 @@ To illustrate using a toy example, 19 indicators from Pandas-TA are optimized us
   </a>
 </p>
 
-The following chart shows of the top 10 strongest correlated indicators, 5 are chosen from which are least correlated with each other (10 and 5 are user defined).
+The following chart shows of the top 10 strongest correlated indicators, 5 are chosen  which are the least correlated with each other (10 and 5 are user defined).
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
     <img src="images/step2.jpg" alt="tuneTA" width="600">
   </a>
 </p>
-
-### Install
 
 ### Install
 
