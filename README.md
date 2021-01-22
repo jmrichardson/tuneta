@@ -20,13 +20,21 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 
 ### Overview
 
-"A picture is worth a thousand words"
+TuneTA simplifies the process of optimizing technical indicators and selecting the best (measured by correlation) while minimizing the correlation between each of the best (optional).  Generally speaking, machine learning models perform better when provided informative inputs that are not strongly correlated.  At a high level, TuneTA performs the following steps:
+
+1.  For each indicator, use an intelligent algorithm to find the best parameters which maximizes its correlation to the user defined target (ie next x day return).  Note the target can be a subset of X which is common for finanical lableing such as with [triple barrier labels](https://towardsdatascience.com/financial-machine-learning-part-1-labels-7eeed050f32e).
+2.  Optionally, the tuned parameters can be reduced by selection the top x measured by correlation, then selecting the least correlated.  This is done by iteratively removing the least correlated of each of the strongest pairs.
+3.  Finally, TuneTA will use the best parameters for each indicator created
+
+To illustrate using a toy example, 19 indicators from the excellent Pandas-TA are optimized using the "length" parameter as shown below (constrained by "length" parameter to graph in 2D).  The dotted black line indicates the "length" that optimizes the given indicator (correlation to next day return).  
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
-    <img src="images/ico.jpg" alt="tuneTA" width="600">
+    <img src="images/ico1.jpg" alt="tuneTA" width="600">
   </a>
 </p>
+
+
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
@@ -77,11 +85,11 @@ if __name__ == "__main__":
     X_test = pd.concat([X_test, features], axis=1)
 ```
 
-### Tests
+***
 
 Simple tests performed on the following indicators:
 
-#### TA-Lib Indicators
+#### TA-Lib
 * tta.BBANDS
 * tta.DEMA
 * tta.EMA
@@ -211,7 +219,7 @@ Simple tests performed on the following indicators:
 * tta.TSF
 * tta.VAR
 
-#### Pandas-TA Indicators
+#### Pandas-TA
 * pta.cdl_doji
 * pta.cdl_inside
 * pta.ha
@@ -325,7 +333,7 @@ Simple tests performed on the following indicators:
 * pta.pvol
 * pta.pvt
 
-#### FinTA Indicators
+#### FinTA
 * fta.SMA
 * fta.SMM
 * fta.SSMA
