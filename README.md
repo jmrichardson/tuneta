@@ -71,7 +71,7 @@ if __name__ == "__main__":
                    trials=30  # Number of optimization trials per indicator per range
                    )
 
-    # Take top 10 tuned indicators, and select the 3 least correlated with each other
+    # Take top 3 tuned indicators, and select the 2 least correlated with each other
     indicators.prune(top=3, studies=2)
 
     # Add indicators to X_train
