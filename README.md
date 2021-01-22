@@ -4,7 +4,7 @@
   </a>
 </p>
 
-TuneTA optimizes a broad set of technical indicators to maximize its correlation to a user defined target variable.  The set of tuned indicators can be reduced by choosing the most correlated with the target while minimizing correlation with each other. TuneTA maintains its state of tuned indicators identically add to multiple data sets (train, validation, test).
+TuneTA optimizes a broad set of technical indicators to maximize its correlation to a user defined target variable.  The set of tuned indicators can be reduced by choosing the most correlated with the target while minimizing correlation with each other. TuneTA maintains its state to add each tuned indicator to multiple data sets (train, validation, test).
 
 ### Features
 
