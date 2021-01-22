@@ -13,12 +13,14 @@ if __name__ == "__main__":
 
     indicators = TuneTA(n_jobs=2, verbose=True)  # Initialize with 2 cores and show trial results
     indicators.fit(X_train, y_train,
-                   indicators=["tta.MACD", "tta.ULTOSC", "pta.rsi", "fta.OBV"],  # Indicators to tune/optimize
+                   # Indicators to tune / optimize
+                   # ":1" means optimize on column index 1 vs default of 0 if indicator returns dataframe
+                   indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "fta.OBV"],
                    ranges=[(2, 180)],  # Period range(s) to tune for each indicator
                    trials=30  # Number of optimization trials per indicator per range
                    )
 
-    # Take 3 tuned indicators, and select the 2 least correlated with each other
+    # Take top 3 tuned indicators, and select the 2 least correlated with each other
     indicators.prune(top=3, studies=2)
 
     # Add indicators to X_train
