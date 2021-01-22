@@ -8,7 +8,7 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 
 ### Features
 
-* Given financial prices (OHLCV) and a target variable such as return, optimizes technical indicator parameters to maximize the correlation to the target variablew.
+* Given financial prices (OHLCV) and a target variable such as return, optimizes technical indicator parameters to maximize the correlation to the target variable.
 * Select top x optimized indicators with most correlation to return with the least correlation to each other
 * Persist state to generate identical indicators on multiple datasets (train, validation, test)
 * Supports technical indicators produced from the following packages
