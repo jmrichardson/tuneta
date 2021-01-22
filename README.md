@@ -30,7 +30,7 @@ To illustrate using a toy example, 19 indicators from the excellent Pandas-TA ar
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
-    <img src="images/ico1.jpg" alt="tuneTA" width="600">
+    <img src="images/step1.jpg" alt="tuneTA" width="600">
   </a>
 </p>
 
@@ -38,7 +38,7 @@ To illustrate using a toy example, 19 indicators from the excellent Pandas-TA ar
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
-    <img src="images/ico2.jpg" alt="tuneTA" width="600">
+    <img src="images/step2.jpg" alt="tuneTA" width="600">
   </a>
 </p>
 
