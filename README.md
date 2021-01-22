@@ -9,8 +9,8 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 ### Features
 
 * Given financial prices (OHLCV) and return (X and y respectively), optimizes technical indicator parameters to maximize the correlation to return.  Multiple ranges can be defined to target specific periods of time
-* Select the top X optimized indicators with most correlation to return, and select X with the least correlation to each other with the goal of improving downstream ML models
-* Persists state to create identical tuned indicators on multiple datasets (train, validation, test)
+* Select top x optimized indicators with most correlation to return with the least correlation to each other
+* Persist state to create identical tuned indicators on multiple datasets (train, validation, test)
 * Supports technical indicators from the following packages
   * [Pandas TA](https://github.com/twopirllc/pandas-ta)
   * [TA-Lib](https://github.com/mrjbq7/ta-lib)
@@ -20,13 +20,13 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 
 ### Overview
 
-TuneTA simplifies the process of optimizing technical indicators and selecting the best (measured by correlation) while minimizing the correlation between each of the best (optional).  Generally speaking, machine learning models perform better when provided informative inputs that are not strongly correlated.  At a high level, TuneTA performs the following steps:
+TuneTA simplifies the process of optimizing technical indicators and selecting the best (measured by correlation) while minimizing the correlation between each other (optional).  Generally speaking, machine learning models perform better when provided informative inputs that are not strongly intercorrelated.  At a high level, TuneTA performs the following steps:
 
-1.  For each indicator, use an intelligent algorithm to find the best parameters which maximizes its correlation to the user defined target (ie next x day return).  Note the target can be a subset of X which is common for finanical lableing such as with [triple barrier labels](https://towardsdatascience.com/financial-machine-learning-part-1-labels-7eeed050f32e).
-2.  Optionally, the tuned parameters can be reduced by selection the top x measured by correlation, then selecting the least correlated.  This is done by iteratively removing the least correlated of each of the strongest correlated pairs.
+1.  For each indicator, use an intelligent algorithm to find the best parameters which maximizes its correlation to the user defined target (ie next x day return).  Note the target can be a subset of X which is common for finanical lableing such as with [Triple Barrier Labels](https://towardsdatascience.com/financial-machine-learning-part-1-labels-7eeed050f32e).
+2.  Optionally, the tuned parameters can be reduced by selecting the top x measured by correlation, then selecting the least intercorrelated.
 3.  Finally, TuneTA will generate each indicator with the best parameters
 
-To illustrate using a toy example, 19 indicators from the excellent Pandas-TA are optimized using the "length" parameter as shown below (constrained by "length" parameter to graph in 2D).  The dotted black line indicates the "length" that optimizes the given indicator (max correlation to next day return).  Internally, TuneTA uses [Optuna](https://optuna.org) to efficiently search for the optimal "length" setting:
+To illustrate using a toy example, 19 indicators from Pandas-TA are optimized using the "length" parameter as shown below (constrained by "length" parameter to graph in 2D).  The dotted black line indicates the "length" that optimizes the given indicator (max correlation to next day return).  Internally, TuneTA uses [Optuna](https://optuna.org) to efficiently search for the optimal "length" setting:
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
@@ -34,7 +34,7 @@ To illustrate using a toy example, 19 indicators from the excellent Pandas-TA ar
   </a>
 </p>
 
-The following chart shows of the top 10 strongest correlated indicators, 5 are chosen from the 10 which are least correlated with each other.  Note 10 and 5 are user defined.
+The following chart shows of the top 10 strongest correlated indicators, 5 are chosen from which are least correlated with each other (10 and 5 are user defined).
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
@@ -73,7 +73,7 @@ if __name__ == "__main__":
                    trials=30  # Number of optimization trials per indicator per range
                    )
 
-    # Take 10 tuned indicators, and select the 3 least correlated with each other
+    # Take top 10 tuned indicators, and select the 3 least correlated with each other
     indicators.prune(top=3, studies=2)
 
     # Add indicators to X_train
