@@ -9,9 +9,8 @@ from tuneta.optimize import Optimize
 import pandas_ta as pta
 from finta import TA as fta
 import talib as tta
-
-import warnings
 import re
+from tabulate import tabulate
 
 
 class TuneTA():
@@ -23,7 +22,7 @@ class TuneTA():
         self.verbose = verbose
 
     def fit(self, X, y, trials=5, indicators=indicators, ranges=ranges, tune_series=tune_series,
-            tune_params=tune_params, tune_column=tune_column):
+            tune_params=tune_params, tune_column=tune_column, spearman=True, weights=None):
         self.fitted = []
         X.columns = X.columns.str.lower()  # columns must be lower case
 
@@ -62,16 +61,41 @@ class TuneTA():
                     elif param in tune_params:
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
                 fn += ")"
-                self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials).fit, X, y, idx=idx, verbose=self.verbose))
+                self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials, spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose, weights=weights))
         self.fitted = [fit.get() for fit in self.fitted]  # Get results of jobs
+
+
+    def report(self, target_corr=True, features_corr=True):
+        fns = []
+        cor = []
+        features = []
+        for fit in self.fitted:
+            fn = fit.function.split("(")[0]
+            params = re.sub('[^0-9a-zA-Z_:]', '', str(fit.study.best_params))
+            fns.append(f"{fn}_{params}")
+            cor.append(round(fit.study.best_value, 6))
+            features.append(fit.res_y[fit.study.best_trial.number])
+        fitness = pd.DataFrame(cor, index=fns, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
+        if target_corr:
+            print("\nTarget Correlation:\n")
+            print(tabulate(fitness, headers=fitness.columns, tablefmt="simple"))
+
+        eval = np.apply_along_axis(rankdata, 1, features)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            correlations = np.abs(np.corrcoef(eval))
+        correlations = pd.DataFrame(correlations, columns=fns, index=fns)
+        if features_corr:
+            print("\nFeature Correlation:\n")
+            print(tabulate(correlations, headers=correlations.columns, tablefmt="simple"))
+
 
     def prune(self, top=2, studies=1):
 
-        if top >= len(self.fitted) or studies >= len(self.fitted):
+        if top > len(self.fitted) or studies > len(self.fitted):
             print("Cannot prune because top or studies is >= tuned indicators")
             return
-        if top <= studies:
-            raise ValueError(f"top {top} must be > studies {studies}")
+        if top < studies:
+            raise ValueError(f"top {top} must be >= studies {studies}")
 
         fitness = []
         for t in self.fitted:
@@ -122,6 +146,11 @@ if __name__ == "__main__":
     X, y = joblib.load('state/Xy.job')
 
     inds = TuneTA(verbose=True)
-    inds.fit(X, y, indicators=['tta.BBANDS:1', 'fta.SMA', 'pta.sma', 'tta.DEMA'], ranges=[(1, 100)], trials=5)
-    inds.prune(top=2, studies=1)
+    inds.fit(X, y, indicators=['tta.BBANDS:1', 'fta.SMA', 'pta.sma', 'tta.RSI', 'tta.RSI'], ranges=[(2, 100)], trials=5)
+    inds.report()
+    inds.prune(top=5, studies=4)
+    inds.report()
+    features = inds.transform(X)
+    X_train = pd.concat([X, features], axis=1)
+    print("done")
 

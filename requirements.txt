@@ -3,3 +3,4 @@ finta
 ta-lib
 optuna
 pathos
+tabulate

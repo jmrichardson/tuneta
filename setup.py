@@ -1,6 +1,5 @@
 from setuptools import setup, find_packages
 
-# Read requirements.txt, ignore comments
 try:
     requires = list()
     f = open("requirements.txt", "rb")
@@ -19,17 +18,14 @@ with open("README.md", "r") as fh:
 
 setup(
     name="tuneta",
-    version="0.1.05",
+    version="0.1.06",
     author="John Richardson",
     author_email="jmrichardson@gmail.com",
-    # description="Optimize technical indicators for machine learning",
-    description="tuneta",
-    long_description="tuneta",
-    # long_description=long_description,
+    description="Optimize financial technical indicators for machine learning",
+    long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/jmrichardson/tuneta",
-    # keywords="technical analysis optimize tune indicators machine learning optuna",
-    keywords="",
+    keywords="technical analysis optimize tune indicators machine learning optuna tune hyperparameter optimization ai correlation",
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

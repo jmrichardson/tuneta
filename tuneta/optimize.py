@@ -30,20 +30,22 @@ def _weighted_spearman(y, y_pred, w):
 
 
 def objective(self, trial, X, y, weights):
-    # import joblib
-    # joblib.dump([X, y], 'state/Xy.job')
-    # Xold, yold = joblib.load('state/Xy.job')
-    # y == yold
     res = eval(self.function)
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
     if len(res) != len(X):
         raise RuntimeError("Unequal indicator result")
-    res = pd.DataFrame(res, index=X.index)  # Convert to dataframe
-    res = res.iloc[:, self.idx]  # Only tune on one column (maximize)
+    res = pd.DataFrame(res, index=X.index).iloc[:, self.idx]  # Convert to dataframe
     res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
     self.res_y.append(res_y)
-    ws = _weighted_spearman(np.array(y), res_y, weights)
+    idx = ~np.logical_or(np.isnan(res_y), np.isnan(y))  # Drop NAs w/boolean mask
+    y = np.compress(idx, np.array(y))
+    res_y = np.compress(idx, res_y)
+    weights = np.compress(idx, weights)
+    if self.spearman:
+        ws = _weighted_spearman(y, res_y, weights)
+    else:
+        ws = _weighted_pearson(y, res_y, weights)
     return ws
 
 
@@ -61,10 +63,11 @@ def trial(self, trial, X):
 
 class Optimize():
 
-    def __init__(self, function, n_trials=100):
+    def __init__(self, function, n_trials=100, spearman=True):
         self.function = function
         self.n_trials = n_trials
         self.res_y = []
+        self.spearman = spearman
 
     def fit(self, X, y=None, weights=None, idx=0, verbose=False):
         if weights is None:
@@ -79,7 +82,5 @@ class Optimize():
     def transform(self, X):
         features = trial(self, self.study.best_trial, X)
         features.replace([np.inf, -np.inf], np.nan, inplace=True)
-        # for p, v in self.study.best_trial.params.items():
-            # col = f"{col}_{p}_{v}"
         return features
 
