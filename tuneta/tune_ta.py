@@ -11,6 +11,7 @@ from finta import TA as fta
 import talib as tta
 import re
 from tabulate import tabulate
+from tuneta.optimize import col_name
 
 
 class TuneTA():
@@ -70,9 +71,7 @@ class TuneTA():
         cor = []
         features = []
         for fit in self.fitted:
-            fn = fit.function.split("(")[0]
-            params = re.sub('[^0-9a-zA-Z_:]', '', str(fit.study.best_params))
-            fns.append(f"{fn}_{params}")
+            fns.append(col_name(fit.function, fit.study.best_params))
             cor.append(round(fit.study.best_value, 6))
             features.append(fit.res_y[fit.study.best_trial.number])
         fitness = pd.DataFrame(cor, index=fns, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
@@ -146,7 +145,8 @@ if __name__ == "__main__":
     X, y = joblib.load('state/Xy.job')
 
     inds = TuneTA(verbose=True)
-    inds.fit(X, y, indicators=['tta.BBANDS:1', 'fta.SMA', 'pta.sma', 'tta.RSI', 'tta.RSI'], ranges=[(2, 100)], trials=5)
+    inds.fit(X, y, indicators=['tta.BBANDS:1', 'fta.SMA', 'pta.sma', 'tta.RSI', 'tta.RSI', 'pta.kst'], ranges=[(2, 100)], trials=5)
+    # inds.fit(X, y, indicators=['pta.kst'], ranges=[(2, 100)], trials=5)
     inds.report()
     inds.prune(top=5, studies=4)
     inds.report()

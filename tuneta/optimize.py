@@ -8,6 +8,13 @@ import talib as tta
 import re
 
 
+def col_name(function, study_best_params):
+    function_name = function.split("(")[0]
+    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_")
+    col = f"{function_name}_{params}"
+    return col
+
+
 def _weighted_pearson(y, y_pred, w):
     """Calculate the weighted Pearson correlation coefficient."""
     with np.errstate(divide='ignore', invalid='ignore'):
@@ -54,15 +61,15 @@ def trial(self, trial, X):
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
     res = pd.DataFrame(res, index=X.index)
-    if res.iloc[:, 0].name == 0:
-        fn = self.function.split("(")[0]
-        params = re.sub('[^0-9a-zA-Z_:]', '', str(self.study.best_params))
-        res.columns = [f"{fn}_{params}_{col}" for col in res.columns]
+    name = col_name(self.function, self.study.best_params)
+    if len(res.columns) > 1:
+        res.columns = [f"{name}_{i}" for i in range(len(res.columns))]
+    else:
+        res.columns = [f"{name}"]
     return res
 
 
 class Optimize():
-
     def __init__(self, function, n_trials=100, spearman=True):
         self.function = function
         self.n_trials = n_trials
