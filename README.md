@@ -45,7 +45,7 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
 ### Install
 
 ```python
-pip install tuneta
+pip install -U tuneta
 ```
 
 ### Example Usage
