@@ -42,7 +42,7 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
   </a>
 </p>
 
-### Install
+### Installation
 
 ```python
 pip install -U tuneta
