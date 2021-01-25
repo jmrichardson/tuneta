@@ -15,7 +15,7 @@ if __name__ == "__main__":
     indicators.fit(X_train, y_train,
                    # Indicators to tune / optimize
                    # ":1" means optimize column index 1 vs default 0 if indicator returns dataframe
-                   indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.apo", "fta.ADX"],
+                   indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
                    ranges=[(2, 180)],  # Period range(s) to tune for each indicator
                    trials=30,  # Number of optimization trials per indicator per range
                    spearman=True,  # Type of correlation metric (Set False for Pearson)
@@ -24,7 +24,7 @@ if __name__ == "__main__":
     indicators.report(target_corr=True, features_corr=True)  # Show correlation report
 
     # Take top 3 tuned indicators, and select the 2 with the least intercorrelation
-    indicators.prune(top=4, studies=2)
+    indicators.prune(top=6, studies=4)
     indicators.report(target_corr=True, features_corr=True)  # Show correlation report
 
     # Add indicators to X_train
