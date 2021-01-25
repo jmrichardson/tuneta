@@ -23,7 +23,7 @@ if __name__ == "__main__":
                    )
     indicators.report(target_corr=True, features_corr=True)  # Show correlation report
 
-    # Take top 3 tuned indicators, and select the 2 with the least intercorrelation
+    # Take top x tuned indicators, and select y with the least intercorrelation
     indicators.prune(top=6, studies=4)
     indicators.report(target_corr=True, features_corr=True)  # Show correlation report
 
