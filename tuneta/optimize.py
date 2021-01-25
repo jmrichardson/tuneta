@@ -15,8 +15,15 @@ def col_name(function, study_best_params):
     return col
 
 
-def _weighted_pearson(y, y_pred, w):
+def _weighted_pearson(y, y_pred, w=None, pearson=True):
     """Calculate the weighted Pearson correlation coefficient."""
+    if pearson:
+        if w is None:
+            w = np.ones(len(y))
+        idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
+        y = np.compress(idx, np.array(y))
+        y_pred = np.compress(idx, np.array(y_pred))
+        w = np.compress(idx, w)
     with np.errstate(divide='ignore', invalid='ignore'):
         y_pred_demean = y_pred - np.average(y_pred, weights=w)
         y_demean = y - np.average(y, weights=w)
@@ -29,11 +36,17 @@ def _weighted_pearson(y, y_pred, w):
     return 0.
 
 
-def _weighted_spearman(y, y_pred, w):
+def _weighted_spearman(y, y_pred, w=None):
     """Calculate the weighted Spearman correlation coefficient."""
+    if w is None:
+        w = np.ones(len(y))
+    idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
+    y = np.compress(idx, np.array(y))
+    y_pred = np.compress(idx, np.array(y_pred))
+    w = np.compress(idx, w)
     y_pred_ranked = np.apply_along_axis(rankdata, 0, y_pred)
     y_ranked = np.apply_along_axis(rankdata, 0, y)
-    return _weighted_pearson(y_pred_ranked, y_ranked, w)
+    return _weighted_pearson(y_pred_ranked, y_ranked, w, pearson=False)
 
 
 def objective(self, trial, X, y, weights):
@@ -45,10 +58,6 @@ def objective(self, trial, X, y, weights):
     res = pd.DataFrame(res, index=X.index).iloc[:, self.idx]  # Convert to dataframe
     res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
     self.res_y.append(res_y)
-    idx = ~np.logical_or(np.isnan(res_y), np.isnan(y))  # Drop NAs w/boolean mask
-    y = np.compress(idx, np.array(y))
-    res_y = np.compress(idx, res_y)
-    weights = np.compress(idx, weights)
     if self.spearman:
         ws = _weighted_spearman(y, res_y, weights)
     else:
@@ -77,8 +86,7 @@ class Optimize():
         self.spearman = spearman
 
     def fit(self, X, y=None, weights=None, idx=0, verbose=False):
-        if weights is None:
-            weights = np.ones(len(y))
+
         self.idx = idx
         if not verbose:
             optuna.logging.set_verbosity(optuna.logging.ERROR)
