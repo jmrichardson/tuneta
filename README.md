@@ -16,7 +16,7 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
   * [TA-Lib](https://github.com/mrjbq7/ta-lib)
   * [FinTA](https://github.com/peerchemist/finta)
 * Parallel processing
-
+* Correlation report of target and features
 
 ### Overview
 
