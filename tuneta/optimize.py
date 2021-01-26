@@ -6,6 +6,8 @@ import pandas_ta as pta
 from finta import TA as fta
 import talib as tta
 import re
+import warnings
+warnings.filterwarnings("ignore")
 
 
 def col_name(function, study_best_params):
@@ -50,13 +52,19 @@ def _weighted_spearman(y, y_pred, w=None):
 
 
 def objective(self, trial, X, y, weights):
-    res = eval(self.function)
+    try:
+        res = eval(self.function)
+    except:
+        raise RuntimeError(f"Optuna execution error: {self.function}")
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
     if len(res) != len(X):
-        raise RuntimeError("Unequal indicator result")
+        raise RuntimeError(f"Optuna unequal indicator result: {self.function}")
     res = pd.DataFrame(res, index=X.index).iloc[:, self.idx]  # Convert to dataframe
     res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
+    if np.isnan(res_y).sum() / len(res_y) > .98:  # Mostly Nans, Remove TA
+        print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
+        return False
     self.res_y.append(res_y)
     if self.spearman:
         ws = _weighted_spearman(y, res_y, weights)

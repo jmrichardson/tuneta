@@ -10,7 +10,7 @@ tune_series = ['open', 'high', 'low', 'close', 'volume']
 # Add back in:  'offset'
 
 # Parameters to tune
-tune_params = ['width', 'fast', 'slow', 'signal', 'length', 'short', 'drift', 'max_lookback', 'min_lookback', 'initial',
+tune_params = ['width', 'fast', 'slow', 'signal', 'length', 'short', 'max_lookback', 'min_lookback', 'initial',
                'lower_length', 'upper_length', 'lookback', 'medium', 'slow_w', 'roc1', 'roc2', 'roc3', 'roc4',
                'sma1', 'sma2', 'sma3', 'sma4', 'scalar', 'width', 'long', 'atr_length', 'high_length',
                'low_length', 'kc_length', 'bb_length', 'mom_length', 'swma_length', 'rvi_length', 'period',
