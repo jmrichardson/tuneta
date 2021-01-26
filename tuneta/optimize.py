@@ -62,10 +62,10 @@ def objective(self, trial, X, y, weights):
         raise RuntimeError(f"Optuna unequal indicator result: {self.function}")
     res = pd.DataFrame(res, index=X.index).iloc[:, self.idx]  # Convert to dataframe
     res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
-    if np.isnan(res_y).sum() / len(res_y) > .98:  # Mostly Nans, Remove TA
+    self.res_y.append(res_y)  # Save results
+    if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
         print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
         return False
-    self.res_y.append(res_y)
     if self.spearman:
         ws = _weighted_spearman(y, res_y, weights)
     else:
