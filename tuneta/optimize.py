@@ -11,9 +11,11 @@ warnings.filterwarnings("ignore")
 
 
 def col_name(function, study_best_params):
-    function_name = function.split("(")[0].replace(".", "_")
-    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "-").replace(":", "_")
-    col = f"{function_name}-{params}"
+    # function_name = function.split("(")[0].replace(".", "_")
+    # params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "-").replace(":", "_")
+    function_name = function.split("(")[0]
+    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_")
+    col = f"{function_name}_{params}"
     return col
 
 
