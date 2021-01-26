@@ -44,6 +44,14 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
 
 ### Installation
 
+Install the latest code(recommended):
+
+```python
+pip install -U git+https://github.com/jmrichardson/tuneta
+```
+
+Install the latest release:
+
 ```python
 pip install -U tuneta
 ```
@@ -291,11 +299,9 @@ Simple tests performed on the following indicators:
 * pta.wma
 * pta.zlma
 * pta.entropy
-* pta.kurtosis
 * pta.mad
 * pta.median
 * pta.quantile
-* pta.skew
 * pta.stdev
 * pta.variance
 * pta.zscore
