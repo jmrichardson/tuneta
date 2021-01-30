@@ -23,7 +23,7 @@ class TuneTA():
         self.verbose = verbose
 
     def fit(self, X, y, trials=5, indicators=indicators, ranges=ranges, tune_series=tune_series,
-            tune_params=tune_params, tune_column=tune_column, spearman=True, weights=None):
+            tune_params=tune_params, spearman=True, weights=None, early_stop=50):
         self.fitted = []
         X.columns = X.columns.str.lower()  # columns must be lower case
 
@@ -46,7 +46,6 @@ class TuneTA():
                 else:
                     sig = inspect.signature(eval(ind))
                     params = sig.parameters.values()
-
                 for param in params:
                     param = re.split(':|=', str(param))[0].strip()
                     if param == "open_":
@@ -62,9 +61,9 @@ class TuneTA():
                     elif param in tune_params:
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
                 fn += ")"
-                self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials, spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose, weights=weights))
+                self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials, spearman=spearman).fit, X, y,
+                                              idx=idx, verbose=self.verbose, weights=weights, early_stop=early_stop,))
         self.fitted = [fit.get() for fit in self.fitted]  # Get results of jobs
-
 
     def report(self, target_corr=True, features_corr=True):
         fns = []

@@ -6,8 +6,10 @@ import pandas_ta as pta
 from finta import TA as fta
 import talib as tta
 import re
+from timeseriescv.cross_validation import CombPurgedKFoldCV
 import warnings
 warnings.filterwarnings("ignore")
+from scipy.stats import kstest
 
 
 def col_name(function, study_best_params):
@@ -53,29 +55,7 @@ def _weighted_spearman(y, y_pred, w=None):
     return _weighted_pearson(y_pred_ranked, y_ranked, w, pearson=False)
 
 
-def objective(self, trial, X, y, weights):
-    try:
-        res = eval(self.function)
-    except:
-        raise RuntimeError(f"Optuna execution error: {self.function}")
-    if isinstance(res, tuple):
-        res = pd.DataFrame(res).T
-    if len(res) != len(X):
-        raise RuntimeError(f"Optuna unequal indicator result: {self.function}")
-    res = pd.DataFrame(res, index=X.index).iloc[:, self.idx]  # Convert to dataframe
-    res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
-    self.res_y.append(res_y)  # Save results
-    if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
-        print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
-        return False
-    if self.spearman:
-        ws = _weighted_spearman(y, res_y, weights)
-    else:
-        ws = _weighted_pearson(y, res_y, weights)
-    return ws
-
-
-def trial(self, trial, X):
+def _trial(self, trial, X):
     res = eval(self.function)
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
@@ -88,6 +68,47 @@ def trial(self, trial, X):
     return res
 
 
+def _early_stopping_opt(study, trial):
+    """Callback function to stop optuna early"""
+    if study.best_score is None:
+        study.best_score = study.best_value
+
+    if study.best_value > study.best_score:
+        study.best_score = study.best_value
+        study.early_stop_count = 0
+    else:
+        if study.early_stop_count > study.early_stop:
+            study.early_stop_count = 0
+            raise optuna.exceptions.OptunaError
+        else:
+            study.early_stop_count = study.early_stop_count+1
+    return
+
+
+def _objective(self, trial, X, y, weights):
+    try:
+        res = eval(self.function)
+    except:
+        raise RuntimeError(f"Optuna execution error: {self.function}")
+    if isinstance(res, tuple):
+        res = pd.DataFrame(res[self.idx])
+    if len(res) != len(X):
+        raise RuntimeError(f"Optuna unequal indicator result: {self.function}")
+    res = pd.DataFrame(res, index=X.index)
+    if len(res.columns) > 1:
+        res = res.iloc[:, self.idx]
+    res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
+    self.res_y.append(res_y)  # Save results
+    if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
+        print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
+        return False
+    if self.spearman:
+        ws = _weighted_spearman(y, res_y, weights)
+    else:
+        ws = _weighted_pearson(y, res_y, weights)
+    return ws
+
+
 class Optimize():
     def __init__(self, function, n_trials=100, spearman=True):
         self.function = function
@@ -95,17 +116,25 @@ class Optimize():
         self.res_y = []
         self.spearman = spearman
 
-    def fit(self, X, y=None, weights=None, idx=0, verbose=False):
-
+    def fit(self, X, y, weights=None, idx=0, verbose=False, early_stop=50):
         self.idx = idx
         if not verbose:
             optuna.logging.set_verbosity(optuna.logging.ERROR)
         self.study = optuna.create_study(direction='maximize')
-        self.study.optimize(lambda trial: objective(self, trial, X, y, weights), n_trials=self.n_trials)
+        self.study.early_stop = early_stop
+        self.study.early_stop_count = 0
+        self.study.best_score = None
+
+        try:
+            self.study.optimize(lambda trial: _objective(self, trial, X, y, weights), n_trials=self.n_trials,
+                                callbacks=[_early_stopping_opt])
+        except optuna.exceptions.OptunaError:
+            pass
+
         return self
 
     def transform(self, X):
-        features = trial(self, self.study.best_trial, X)
+        features = _trial(self, self.study.best_trial, X)
         features.replace([np.inf, -np.inf], np.nan, inplace=True)
         return features
 
