@@ -78,7 +78,8 @@ if __name__ == "__main__":
                    # ":1" means optimize column index 1 vs default 0 if indicator returns dataframe
                    indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
                    ranges=[(2, 180)],  # Period range(s) to tune for each indicator
-                   trials=30,  # Number of optimization trials per indicator per range
+                   trials=300,  # Number of optimization trials per indicator per range
+                   early_stop=25,  # Stop after number of trials without improvement
                    spearman=True,  # Type of correlation metric (Set False for Pearson)
                    weights=None,  # Optional weights for correlation evaluation
                    )
