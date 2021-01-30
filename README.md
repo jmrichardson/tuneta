@@ -44,6 +44,11 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
   </a>
 </p>
 
+### Split Optimization
+
+
+
+
 ### Installation
 
 Install the latest code(recommended):
@@ -57,6 +62,7 @@ Install the latest release:
 ```python
 pip install -U tuneta
 ```
+
 
 ### Example Usage
 
