@@ -6,10 +6,8 @@ import pandas_ta as pta
 from finta import TA as fta
 import talib as tta
 import re
-from timeseriescv.cross_validation import CombPurgedKFoldCV
 import warnings
 warnings.filterwarnings("ignore")
-from scipy.stats import kstest
 
 
 def col_name(function, study_best_params):

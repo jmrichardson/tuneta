@@ -4,4 +4,3 @@ ta-lib
 optuna
 pathos
 tabulate
-timeseriescv
