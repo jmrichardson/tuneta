@@ -6,10 +6,9 @@ import pandas_ta as pta
 from finta import TA as fta
 import talib as tta
 import re
-from timeseriescv.cross_validation import CombPurgedKFoldCV
+from timeseriescv.cross_validation import PurgedWalkForwardCV
 import warnings
 warnings.filterwarnings("ignore")
-from scipy.stats import kstest
 
 
 def col_name(function, study_best_params):
@@ -124,6 +123,8 @@ class Optimize():
         self.study.early_stop = early_stop
         self.study.early_stop_count = 0
         self.study.best_score = None
+
+
 
         try:
             self.study.optimize(lambda trial: _objective(self, trial, X, y, weights), n_trials=self.n_trials,
