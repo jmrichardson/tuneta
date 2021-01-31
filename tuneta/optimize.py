@@ -42,6 +42,8 @@ def _weighted_pearson(y, y_pred, w=None, pearson=True):
 
 def _weighted_spearman(y, y_pred, w=None):
     """Calculate the weighted Spearman correlation coefficient."""
+    # y = np.array(y)
+    # y_pred = np.array(y_pred)
     if w is None:
         w = np.ones(len(y))
     idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
@@ -58,7 +60,7 @@ def _trial(self, trial, X):
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
     res = pd.DataFrame(res, index=X.index)
-    name = col_name(self.function, self.study.best_params)
+    name = col_name(self.function, trial.params)
     if len(res.columns) > 1:
         res.columns = [f"{name}_{i}" for i in range(len(res.columns))]
     else:
@@ -98,7 +100,6 @@ def _objective(self, trial, X, y, weights, split=None):
         res = eval(self.function)
     except:
         raise RuntimeError(f"Optuna execution error: {self.function}")
-
     if isinstance(res, tuple):
         res = pd.DataFrame(res[self.idx])
     if len(res) != len(X):
@@ -107,12 +108,15 @@ def _objective(self, trial, X, y, weights, split=None):
     if len(res.columns) > 1:
         res = res.iloc[:, self.idx]
     res_y = res.reindex(y.index)[0]  # Reduce to y
-    self.res_y.append(res_y)  # Save results (needed for prune)
+    # self.res_y.append(res_y)  # Save results (needed for prune)
     if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
         print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
         return False
-    t = _weighted_spearman(y.iloc[split[0]], res_y.iloc[split[0]], weights)
-    v = _weighted_spearman(y.iloc[split[1]], res_y.iloc[split[1]], weights)
+    cutoff = len(split[0])
+    y = np.array(y)
+    res_y = np.array(res_y)
+    t = _weighted_spearman(y[0:cutoff], res_y[0:cutoff], weights)
+    v = _weighted_spearman(y[cutoff:], res_y[cutoff:], weights)
     return t, v
 
 
@@ -120,7 +124,7 @@ class Optimize():
     def __init__(self, function, n_trials=100, spearman=True):
         self.function = function
         self.n_trials = n_trials
-        self.res_y = []
+        # self.res_y = []
         self.spearman = spearman
 
     def fit(self, X, y, weights=None, idx=0, verbose=False, early_stop=50, split=None):
@@ -139,7 +143,7 @@ class Optimize():
         return self
 
     def transform(self, X):
-        features = _trial(self, self.study.best_trial, X)
+        features = _trial(self, self.study.trials[self.study.top_trial], X)
         features.replace([np.inf, -np.inf], np.nan, inplace=True)
         return features
 

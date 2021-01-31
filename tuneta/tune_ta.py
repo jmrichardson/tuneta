@@ -107,7 +107,7 @@ class TuneTA():
         features = []
         top_studies = [self.fitted[i] for i in fitness]  # Get HOF studies
         for study in top_studies:
-            features.append(study.res_y[study.study.best_trial.number])
+            features.append(study.res_y[study.study.top_trial])
         features = np.array(features)  # Features of HOF studies
 
         # Correlation of HOF features
