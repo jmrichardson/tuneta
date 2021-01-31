@@ -6,7 +6,6 @@ import pandas_ta as pta
 from finta import TA as fta
 import talib as tta
 import re
-from timeseriescv.cross_validation import PurgedWalkForwardCV
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -67,28 +66,39 @@ def _trial(self, trial, X):
     return res
 
 
+# Minimize difference, Maximize Total
+def _min_max(study):
+    df = []
+    for trial in study.best_trials:
+        df.append([trial.number, trial.values[0] + trial.values[1], abs(trial.values[0] - trial.values[1])])
+    return pd.DataFrame(df).sort_values(by=[2], ascending=[True]).iloc[0:10].sort_values(by=[1], ascending=False).iloc[0, 0]
+
+
 def _early_stopping_opt(study, trial):
     """Callback function to stop optuna early"""
-    if study.best_score is None:
-        study.best_score = study.best_value
-
-    if study.best_value > study.best_score:
-        study.best_score = study.best_value
-        study.early_stop_count = 0
-    else:
+    trial = _min_max(study)
+    if trial == study.top_trial:
         if study.early_stop_count > study.early_stop:
             study.early_stop_count = 0
             raise optuna.exceptions.OptunaError
         else:
-            study.early_stop_count = study.early_stop_count+1
+            study.early_stop_count = study.early_stop_count + 1
+    else:
+        study.top_trial = trial
+        study.early_stop_count = 0
     return
 
 
-def _objective(self, trial, X, y, weights):
+def _objective(self, trial, X, y, weights, split=None):
+
+    all = np.concatenate(split).ravel()
+    X = X.iloc[all]
+    y = y.iloc[all]
     try:
         res = eval(self.function)
     except:
         raise RuntimeError(f"Optuna execution error: {self.function}")
+
     if isinstance(res, tuple):
         res = pd.DataFrame(res[self.idx])
     if len(res) != len(X):
@@ -96,16 +106,14 @@ def _objective(self, trial, X, y, weights):
     res = pd.DataFrame(res, index=X.index)
     if len(res.columns) > 1:
         res = res.iloc[:, self.idx]
-    res_y = res.reindex(y.index).to_numpy().flatten()  # Reduce to y and convert to array
-    self.res_y.append(res_y)  # Save results
+    res_y = res.reindex(y.index)[0]  # Reduce to y
+    self.res_y.append(res_y)  # Save results (needed for prune)
     if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
         print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
         return False
-    if self.spearman:
-        ws = _weighted_spearman(y, res_y, weights)
-    else:
-        ws = _weighted_pearson(y, res_y, weights)
-    return ws
+    t = _weighted_spearman(y.iloc[split[0]], res_y.iloc[split[0]], weights)
+    v = _weighted_spearman(y.iloc[split[1]], res_y.iloc[split[1]], weights)
+    return t, v
 
 
 class Optimize():
@@ -115,23 +123,19 @@ class Optimize():
         self.res_y = []
         self.spearman = spearman
 
-    def fit(self, X, y, weights=None, idx=0, verbose=False, early_stop=50):
+    def fit(self, X, y, weights=None, idx=0, verbose=False, early_stop=50, split=None):
         self.idx = idx
         if not verbose:
             optuna.logging.set_verbosity(optuna.logging.ERROR)
-        self.study = optuna.create_study(direction='maximize')
+        sampler = optuna.samplers.NSGAIISampler()
+        self.study = optuna.create_study(directions=['maximize', 'maximize'], sampler=sampler)
         self.study.early_stop = early_stop
         self.study.early_stop_count = 0
-        self.study.best_score = None
-
-
-
+        self.study.top_trial = None
         try:
-            self.study.optimize(lambda trial: _objective(self, trial, X, y, weights), n_trials=self.n_trials,
-                                callbacks=[_early_stopping_opt])
+            self.study.optimize(lambda trial: _objective(self, trial, X, y, weights, split), n_trials=self.n_trials, callbacks=[_early_stopping_opt])
         except optuna.exceptions.OptunaError:
             pass
-
         return self
 
     def transform(self, X):

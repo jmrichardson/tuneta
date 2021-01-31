@@ -14,6 +14,7 @@ from tabulate import tabulate
 from tuneta.optimize import col_name
 
 
+
 class TuneTA():
 
     def __init__(self, n_jobs=multiprocessing.cpu_count() - 1, verbose=False):
@@ -23,7 +24,7 @@ class TuneTA():
         self.verbose = verbose
 
     def fit(self, X, y, trials=5, indicators=indicators, ranges=ranges, tune_series=tune_series,
-            tune_params=tune_params, spearman=True, weights=None, early_stop=50):
+            tune_params=tune_params, spearman=True, weights=None, early_stop=50, split=None):
         self.fitted = []
         X.columns = X.columns.str.lower()  # columns must be lower case
 
@@ -62,7 +63,7 @@ class TuneTA():
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
                 fn += ")"
                 self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials, spearman=spearman).fit, X, y,
-                                              idx=idx, verbose=self.verbose, weights=weights, early_stop=early_stop,))
+                                              idx=idx, verbose=self.verbose, weights=weights, early_stop=early_stop, split=split))
         self.fitted = [fit.get() for fit in self.fitted]  # Get results of jobs
 
     def report(self, target_corr=True, features_corr=True):
@@ -97,7 +98,7 @@ class TuneTA():
 
         fitness = []
         for t in self.fitted:
-            fitness.append(t.study.best_value)  # get fitness of study
+            fitness.append(sum(t.study.trials[t.study.top_trial].values))  # get fitness of study
         fitness = np.array(fitness)  # Fitness of each fitted study
 
         fitness = fitness.argsort()[::-1][:top]  # Get sorted fitness indices of HOF

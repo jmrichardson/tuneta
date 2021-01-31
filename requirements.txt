@@ -5,3 +5,4 @@ optuna
 pathos
 tabulate
 timeseriescv
+sklearn>=0.24
