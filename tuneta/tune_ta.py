@@ -63,7 +63,7 @@ class TuneTA():
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
                 fn += ")"
                 self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials, spearman=spearman).fit, X, y,
-                                              idx=idx, verbose=self.verbose, weights=weights, early_stop=early_stop, split=split))
+                                              idx=idx, verbose=self.verbose, weights=weights, early_stop=early_stop, lookback=max(max(ranges)), split=split), )
         self.fitted = [fit.get() for fit in self.fitted]  # Get results of jobs
 
     def report(self, target_corr=True, features_corr=True):

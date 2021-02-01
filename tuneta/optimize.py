@@ -91,9 +91,10 @@ def _early_stopping_opt(study, trial):
     return
 
 
-def _objective(self, trial, X, y, weights, split=None):
-
+def _objective(self, trial, X, y, weights, lookback, split):
     all = np.concatenate(split).ravel()
+    if split[0][0] > 0:  # Add lookback for TAs into previous split
+        all = np.concatenate([np.array(range(all[0]-lookback, all[0])), all])
     X = X.iloc[all]
     y = y.iloc[all]
     try:
@@ -127,7 +128,7 @@ class Optimize():
         # self.res_y = []
         self.spearman = spearman
 
-    def fit(self, X, y, weights=None, idx=0, verbose=False, early_stop=50, split=None):
+    def fit(self, X, y, weights=None, idx=0, verbose=False, early_stop=50, split=None, lookback=None):
         self.idx = idx
         if not verbose:
             optuna.logging.set_verbosity(optuna.logging.ERROR)
@@ -137,7 +138,7 @@ class Optimize():
         self.study.early_stop_count = 0
         self.study.top_trial = None
         try:
-            self.study.optimize(lambda trial: _objective(self, trial, X, y, weights, split), n_trials=self.n_trials, callbacks=[_early_stopping_opt])
+            self.study.optimize(lambda trial: _objective(self, trial, X, y, weights, lookback, split), n_trials=self.n_trials, callbacks=[_early_stopping_opt])
         except optuna.exceptions.OptunaError:
             pass
         return self
