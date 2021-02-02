@@ -11,20 +11,20 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 * Given financial prices (OHLCV) and a target variable such as return, optimizes technical indicator parameters to maximize the correlation to the target variable.
 * Select top x optimized indicators with most correlation to return with the least correlation to each other
 * Persist state to generate identical indicators on multiple datasets (train, validation, test)
+* Split optimization
+* Early stopping
+* Correlation report of target and features
+* Parallel processing
 * Supports technical indicators produced from the following packages
   * [Pandas TA](https://github.com/twopirllc/pandas-ta)
   * [TA-Lib](https://github.com/mrjbq7/ta-lib)
   * [FinTA](https://github.com/peerchemist/finta)
-* Parallel processing
-* Correlation report of target and features
-* Early stopping
-* Split optimization
 
 ### Overview
 
 TuneTA simplifies the process of optimizing technical indicators and selecting the best (measured by correlation) while minimizing the correlation between each other (optional).  Generally speaking, machine learning models perform better when provided informative inputs that are not strongly intercorrelated.  At a high level, TuneTA performs the following steps:
 
-1.  For each indicator, use an intelligent algorithm to find the best parameters which maximizes its correlation to the user defined target (ie next x day return).  Note the target can be a subset of X which is common for financial labeling such as with [Triple Barrier Labels](https://towardsdatascience.com/financial-machine-learning-part-1-labels-7eeed050f32e).
+1.  For each indicator, use an intelligent algorithm to find the best parameters which maximizes its correlation to the user defined target (ie next x day return).  TuneTA supports parameter optimization across multiple time periods.  Note the target can be a subset of X which is common for financial labeling such as with [Triple Barrier Labels](https://towardsdatascience.com/financial-machine-learning-part-1-labels-7eeed050f32e).
 2.  Optionally, the tuned parameters can be reduced by selecting the top x indicators measured by correlation, then selecting the least intercorrelated.
 3.  Finally, TuneTA will generate each indicator with the best parameters
 
@@ -44,10 +44,15 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
   </a>
 </p>
 
-### Split Optimization
+### Multi-Time Period Optimization
 
+TuneTA supports optimizing indicator parameters over an entire historical dataset or in multiple time periods.  
 
-
+<p align="center">
+  <a href="https://github.com/jmrichardson/tuneta">
+    <img src="images/multi.png" alt="Multi-Objective Optimization" width="600">
+  </a>
+</p>
 
 ### Installation
 
