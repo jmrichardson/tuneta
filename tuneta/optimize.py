@@ -108,12 +108,6 @@ def _single_early_stopping_opt(study, trial):
 
 
 def _objective(self, trial, X, y, weights, lookback=None, split=None):
-    if split is not None:
-        all = np.concatenate(split).ravel()
-        if split[0][0] > 0:  # Add lookback for TAs into previous split
-            all = np.concatenate([np.array(range(all[0]-lookback, all[0])), all])
-        X = X.iloc[all]
-        y = y.iloc[all]
     try:
         res = eval(self.function)
     except:
@@ -133,10 +127,12 @@ def _objective(self, trial, X, y, weights, lookback=None, split=None):
     y = np.array(y)
     res_y = np.array(res_y)
     if split is not None:
-        cutoff = len(split[0])
-        t = _weighted_spearman(y[0:cutoff], res_y[0:cutoff], weights)
-        v = _weighted_spearman(y[cutoff:], res_y[cutoff:], weights)
-        return t, v
+        corr = []
+        s = 0
+        for e in split:
+            corr.append(_weighted_spearman(y[s:e], res_y[s:e]))  # TODO: add weighs functionality
+            s = e
+        return tuple(corr)
     else:
         if self.spearman:
             ws = _weighted_spearman(y, res_y, weights)
@@ -169,7 +165,7 @@ class Optimize():
                 pass
         else:
             sampler = optuna.samplers.NSGAIISampler()
-            self.study = optuna.create_study(directions=['maximize', 'maximize'], sampler=sampler)
+            self.study = optuna.create_study(directions=len(split) * ['maximize'], sampler=sampler)
             self.study.early_stop = early_stop
             self.study.early_stop_count = 0
             self.study.top_trial = None
