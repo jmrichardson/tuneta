@@ -24,7 +24,7 @@ class TuneTA():
         self.verbose = verbose
 
     def fit(self, X, y, trials=5, indicators=indicators, ranges=ranges, tune_series=tune_series,
-            tune_params=tune_params, spearman=True, weights=None, early_stop=50, split=None):
+            tune_params=tune_params, spearman=True, weights=None, early_stop=99999, split=None):
         self.fitted = []
         X.columns = X.columns.str.lower()  # columns must be lower case
 
@@ -71,9 +71,13 @@ class TuneTA():
         cor = []
         features = []
         for fit in self.fitted:
-            fns.append(col_name(fit.function, fit.study.best_params))
-            cor.append(round(fit.study.best_value, 6))
-            features.append(fit.res_y[fit.study.best_trial.number])
+            if fit.split is None:
+                fns.append(col_name(fit.function, fit.study.best_params))
+                cor.append(round(fit.study.best_value, 6))
+            else:
+                fns.append(col_name(fit.function, fit.study.top_params))
+                cor.append(round(fit.study.top_value, 6))
+            features.append(fit.res_y)
         fitness = pd.DataFrame(cor, index=fns, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
         if target_corr:
             print("\nTarget Correlation:\n")
@@ -98,7 +102,10 @@ class TuneTA():
 
         fitness = []
         for t in self.fitted:
-            fitness.append(sum(t.study.trials[t.study.top_trial].values))  # get fitness of study
+            if t.split is None:
+                fitness.append(t.study.best_trial.value)  # get fitness of study
+            else:
+                fitness.append(sum(t.study.trials[t.study.top_trial].values))  # get fitness of study
         fitness = np.array(fitness)  # Fitness of each fitted study
 
         fitness = fitness.argsort()[::-1][:top]  # Get sorted fitness indices of HOF
@@ -107,7 +114,7 @@ class TuneTA():
         features = []
         top_studies = [self.fitted[i] for i in fitness]  # Get HOF studies
         for study in top_studies:
-            features.append(study.res_y[study.study.top_trial])
+            features.append(study.res_y)
         features = np.array(features)  # Features of HOF studies
 
         # Correlation of HOF features

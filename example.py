@@ -11,8 +11,8 @@ if __name__ == "__main__":
     y = percent_return(X.Close, offset=-1)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3, shuffle=False)
 
-    indicators = TuneTA(n_jobs=2, verbose=True)  # Initialize with 2 cores and show trial results
-    indicators.fit(X_train, y_train,
+    tta = TuneTA(n_jobs=2, verbose=True)  # Initialize with 2 cores and show trial results
+    tta.fit(X_train, y_train,
                    # Indicators to tune / optimize
                    # ":1" means optimize column index 1 vs default 0 if indicator returns dataframe
                    indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
@@ -22,16 +22,16 @@ if __name__ == "__main__":
                    spearman=True,  # Type of correlation metric (Set False for Pearson)
                    weights=None,  # Optional weights for correlation evaluation
                    )
-    indicators.report(target_corr=True, features_corr=True)  # Show correlation report
+    tta.report(target_corr=True, features_corr=True)  # Show correlation report
 
     # Take top x tuned indicators, and select y with the least intercorrelation
-    indicators.prune(top=6, studies=4)
-    indicators.report(target_corr=True, features_corr=True)  # Show correlation report
+    tta.prune(top=6, studies=4)
+    tta.report(target_corr=True, features_corr=True)  # Show correlation report
 
     # Add indicators to X_train
-    features = indicators.transform(X_train)
+    features = tta.transform(X_train)
     X_train = pd.concat([X_train, features], axis=1)
 
     # Add same indicators to X_test
-    features = indicators.transform(X_test)
+    features = tta.transform(X_test)
     X_test = pd.concat([X_test, features], axis=1)

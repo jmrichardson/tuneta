@@ -5,3 +5,4 @@ optuna
 pathos
 tabulate
 scikit-learn>=0.24
+pareto
