@@ -3,6 +3,7 @@ import pandas as pd
 from pandas_ta import percent_return
 from tuneta.tune_ta import TuneTA
 from sklearn.model_selection import train_test_split
+import numpy as np
 
 
 if __name__ == "__main__":
@@ -18,6 +19,7 @@ if __name__ == "__main__":
                    indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
                    ranges=[(2, 180)],  # Period range(s) to tune for each indicator
                    trials=300,  # Number of optimization trials per indicator per range
+                   split=np.linspace(0, len(X_train), num=5).astype(int),  # Define split points
                    early_stop=25,  # Stop after number of trials without improvement
                    spearman=True,  # Type of correlation metric (Set False for Pearson)
                    weights=None,  # Optional weights for correlation evaluation
