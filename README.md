@@ -50,7 +50,7 @@ TuneTA supports optimizing indicator parameters over an entire historical datase
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
-    <img src="images/multi.png" alt="Multi-Objective Optimization" width="600">
+    <img src="images/multi.jpg" alt="Multi-Objective Optimization" width="600">
   </a>
 </p>
 
