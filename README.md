@@ -46,13 +46,15 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
 
 ### Multi-Time Period Optimization
 
-TuneTA supports optimizing indicator parameters over an entire historical dataset or in multiple time periods.  
+TuneTA supports optimizing indicator parameters over an entire historical dataset or in multiple time periods.Technical indicators may not perform consistently across a large time frame.  Optimizing a technical indicator over multiple time periods can help avoid correlation skew while providing insight into consistent performance.  
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
     <img src="images/multi.jpg" alt="Multi-Objective Optimization" width="600">
   </a>
 </p>
+
+TuneTA uses multi-objective optimization (pareto optimal) to maximize correlation in each time period with respect to deviation.
 
 ### Installation
 
