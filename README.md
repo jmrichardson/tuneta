@@ -48,7 +48,7 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
 
 TuneTA supports the optimization of parameters over an entire dataset or split into multiple time periods.  Technical indicators may not perform consistently across larger time frames due to market fluctuation.  Optimizing technical indicators over distinct time periods can help avoid correlation skew while providing insight into inconsistent performance.  TuneTA uses multi-objective optimization (pareto optimal) to maximize correlation in each time period with respect to deviation.
 
-The figure below illustrates the possibility of achieving high indicator correlation at the expense of inconsistency across the entire dataset (high correlation only initially).  Splitting the dataset into parts and maximizing each split with the same set of parameters could potentially provide "smoothed" correlation across the whole.  Note, the indicator parameters do not differ across sets, rather an tuneta tries to select the parameter(s) which provides the maximum mean correlation to the target while minimizing the deviation of correlation of each split.
+The figure below illustrates the possibility of achieving high indicator correlation at the expense of inconsistency across the entire dataset (initial high correlation attenuating over time).  Splitting the dataset into parts and maximizing each split with the same set of parameters could potentially provide "smoothed" correlation.  Note, indicator parameters do not differ across splits, rather tuneta tries to select parameter(s) which provide maximum correlation to the target while minimizing deviation of all splits.
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
@@ -56,6 +56,13 @@ The figure below illustrates the possibility of achieving high indicator correla
   </a>
 </p>
 
+### Early Stopping
+
+Early stopping can be enabled to limit the number of optimization trials due to resource and time constraints. Early stopping threshold is calculated as follows:
+
+Single time period optimization:  Stop after x number of trials performed without improvement in correlation.
+
+Multi-time period optimization:  TuneTA finds the best non-dominated candidates of trials with respect to correlation (max) and deviation (min) along the pareto front.  A second pareto is generated among the initial candidates to percolate the best within a pre-defined epsilon.  Stop if there are no changes in the best trial after x number of trials.
 
 ### Installation
 

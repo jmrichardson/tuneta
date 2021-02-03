@@ -74,7 +74,8 @@ def _min_max(study):
         df.append([trial.number, np.mean(trial.values), np.std(trial.values)])
     df = pd.DataFrame(df).sort_values(by=1, ascending=False)
     if len(df) > 1:
-        nd = pareto.eps_sort([list(df.itertuples(False))], objectives=[1, 2], epsilons=[np.std(df[1])*.15, np.std(df[1])*.5], maximize=[1])
+        nd = pareto.eps_sort([list(df.itertuples(False))], objectives=[1, 2],
+            epsilons=[np.std(df[1])*.15, np.std(df[1])*.5], maximize=[1])
         nd = pd.DataFrame(nd).sort_values(by=1, ascending=False)
     else:
         nd = df
