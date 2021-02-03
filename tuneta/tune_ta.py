@@ -46,26 +46,35 @@ class TuneTA():
         # TTA uses help docstrings as signature is not available in C bindings
         # Parameters contained in config.py are tuned
         # TODO: Add fast-ta
-        for low, high in ranges:  # Iterate user defined search space ranges
+
+        # Iterate user defined search space ranges
+        for low, high in ranges:
             if low <= 1:
                 raise ValueError("Range low must be > 1")
             if high >= len(X):
                 raise ValueError(f"Range high:{high} must be > length of X:{len(X)}")
-            for ind in indicators:  # Iterate indicators per range
-                idx = 0  # Index column to optimize if indicator returns dataframe
+
+            # Iterate indicators per range
+            for ind in indicators:
+
+                # Index column to optimize if indicator returns dataframe
+                idx = 0
                 if ":" in ind:
                     idx = int(ind.split(":")[1])
                     ind = ind.split(":")[0]
                 fn = f"{ind}("
+
                 # If TTA indicator, use doc strings for lack of better way to
                 # get indicator arguments (C binding)
                 if ind[0:3] == "tta":
                     usage = eval(f"{ind}.__doc__").split(")")[0].split("(")[1]
                     params = re.sub('[^0-9a-zA-Z_\s]', '', usage).split()
+
                 # Pandas-TA and FinTA both can be inspected for parameters
                 else:
                     sig = inspect.signature(eval(ind))
                     params = sig.parameters.values()
+
                 # Format function string
                 for param in params:
                     param = re.split(':|=', str(param))[0].strip()
@@ -82,11 +91,12 @@ class TuneTA():
                     elif param in tune_params:
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
                 fn += ")"
+
                 # Asyncrhonous optimization per indicator
                 self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials,
                     spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
-                    weights=weights, early_stop=early_stop, lookback=max(max(ranges)),
-                    split=split), )
+                    weights=weights, early_stop=early_stop, split=split), )
+
         # Blocking wait to retrieve results
         self.fitted = [fit.get() for fit in self.fitted]
 
@@ -155,10 +165,15 @@ class TuneTA():
         X.columns = X.columns.str.lower()  # columns must be lower case
         pool = ProcessPool(nodes=self.n_jobs)  # Number of jobs
         self.result = []
+
         # Iterate fitted studies and calculate TA with fitted parameter set
         for ind in self.fitted:
             self.result.append(pool.apipe(ind.transform, X))
+
+        # Blocking wait for asynchronous results
         self.result = [res.get() for res in self.result]
+
+        # Combine results into dataframe to return
         res = pd.concat(self.result, axis=1)
         return res
 
