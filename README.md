@@ -48,7 +48,7 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
 
 TuneTA supports the optimization of parameters over an entire dataset or split into multiple time periods.  Technical indicators may not perform consistently across larger time frames due to market fluctuation.  Optimizing technical indicators over distinct time periods can help avoid correlation skew while providing insight into inconsistent performance.  TuneTA uses multi-objective optimization (pareto optimal) to maximize correlation in each time period with respect to deviation.
 
-The figure below illustrates the possibility of achieving high indicator correlation at the expense of inconsistency across the entire dataset (initial high correlation attenuating over time).  Splitting the dataset into parts and maximizing each split with the same set of parameters could potentially provide "smoothed" correlation.  Note, indicator parameters do not differ across splits, rather tuneta tries to select parameter(s) which provide maximum correlation to the target while minimizing deviation of all splits.
+The figure below illustrates the possibility of achieving high indicator correlation at the expense of inconsistency across the entire dataset (initial high correlation attenuating over time).  Splitting the dataset into parts and maximizing each split with the same set of parameters could potentially provide "smoothed" consistent correlation.  Note, indicator parameters do not differ across splits, rather tuneta tries to select parameter(s) which provide maximum correlation to the target while minimizing deviation of all splits.
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
