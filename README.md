@@ -58,11 +58,10 @@ The figure below illustrates the possibility of achieving high indicator correla
 
 ### Early Stopping
 
-Early stopping can be enabled to limit the number of optimization trials due to resource and time constraints. Early stopping threshold is calculated as follows:
+Early stopping can be enabled to limit the number of optimization trials due to resource and time constraints:
 
-Single time period optimization:  Stop after x number of trials performed without improvement in correlation.
-
-Multi-time period optimization:  TuneTA finds the best non-dominated candidates of trials with respect to correlation (max) and deviation (min) along the pareto front.  A second pareto is generated among the initial candidates to percolate the best within a pre-defined epsilon.  Stop if there are no changes in the best trial after x number of trials.
+* Single time period optimization:  Stop after x number of trials performed without improvement in correlation.
+* Multi-time period optimization:  TuneTA finds the best non-dominated candidates of trials with respect to correlation (max) and deviation (min) along the pareto front.  A second pareto is generated among the initial candidates to percolate the best within a pre-defined epsilon.  Stop if there are no changes in the best trial after x number of trials.
 
 ### Installation
 
