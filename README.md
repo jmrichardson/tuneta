@@ -11,7 +11,7 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 * Given financial prices (OHLCV) and a target variable such as return, optimizes technical indicator parameters to maximize the correlation to the target variable.
 * Select top x optimized indicators with most correlation to return with the least correlation to each other
 * Persist state to generate identical indicators on multiple datasets (train, validation, test)
-* Split optimization
+* Split multi-objective optimization
 * Early stopping
 * Correlation report of target and features
 * Parallel processing
@@ -47,6 +47,8 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
 ### Multi-Time Period Optimization
 
 TuneTA supports the optimization of parameters over an entire dataset or split into multiple time periods.  Technical indicators may not perform consistently across larger time frames due to market fluctuation.  Optimizing technical indicators over distinct time periods can help avoid correlation skew while providing insight into inconsistent performance.  TuneTA uses multi-objective optimization (pareto optimal) to maximize correlation in each time period with respect to deviation.
+
+The figure below illustrates the possibility of achieving high indicator correlation at the expense of inconsistency across the entire dataset (high correlation only initially).  Splitting the dataset into parts and maximizing each split with the same set of parameters could potentially provide "smoothed" correlation across the whole.  Note, the indicator parameters do not differ across sets, rather an tuneta tries to select the parameter(s) which provides the maximum mean correlation to the target while minimizing the deviation of correlation of each split.
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
