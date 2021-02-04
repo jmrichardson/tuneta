@@ -16,11 +16,11 @@ if __name__ == "__main__":
     tta.fit(X_train, y_train,
                    # Indicators to tune / optimize
                    # ":1" means optimize column index 1 vs default 0 if indicator returns dataframe
-                   # indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
-                   indicators=["tta.MACD", "tta.ULTOSC", "pta.kst"],
+                   indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
+                   # indicators=["tta.MACD", "tta.ULTOSC", "pta.kst"],
                    ranges=[(2, 260)],  # Period range(s) to tune for each indicator
                    trials=100,  # Number of optimization trials per indicator per range
-                   split=np.linspace(0, len(X_train), num=4).astype(int),  # Define split points
+                   # split=np.linspace(0, len(X_train), num=4).astype(int),  # Define split points
                    early_stop=10,  # Stop after number of trials without improvement
                    spearman=True,  # Type of correlation metric (Set False for Pearson)
                    weights=None,  # Optional weights for correlation evaluation

@@ -129,7 +129,7 @@ if __name__ == "__main__":
 
 * The first split for mutli-time period optimization tends to have significantly different correlation than the remaining splits?
 
-Calculating a technical indicator typically results in leading NANs until it has enough data.  These NANs are ignored when calculating correlation.  If you have too many splits or a small dataset, these NANs can lead to inflated or deflated correlation compared to the rest.  Adjust the split points to account for leading NANs or increase the dataset size to minimize the effect of leading NANs.
+>Calculating a technical indicator typically results in leading NANs until it has enough data.  These NANs are ignored when calculating correlation.  If you have too many splits or a small dataset, these NANs can lead to inflated or deflated correlation of the first split compared to the rest.  Adjust the split points to account for leading NANs or increase the dataset size to minimize the effect of leading NANs.
 
 Simple tests performed on the following indicators:
 

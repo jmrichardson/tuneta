@@ -196,7 +196,11 @@ class TuneTA():
 
             cor.append(round(fit.res_y_corr, 6))
             features.append(fit.res_y)
-        fitness = pd.DataFrame(zip(cor, mean_moc, moc), index=fns, columns=['Correlation', 'Split Mean', 'Split Correlation']).sort_values(by=['Correlation'], ascending=False)
+
+        if fit.split is None:
+            fitness = pd.DataFrame(cor, index=fns, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
+        else:
+            fitness = pd.DataFrame(zip(cor, mean_moc, moc), index=fns, columns=['Correlation', 'Split Mean', 'Split Correlation']).sort_values(by=['Correlation'], ascending=False)
 
         if target_corr:
             print("\nTarget Correlation:\n")
