@@ -48,7 +48,7 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
 
 TuneTA supports the optimization of parameters over an entire dataset or split into multiple time periods.  Technical indicators may not perform consistently across larger time frames due to market fluctuation.  Optimizing technical indicators over distinct time periods can help avoid correlation skew while providing insight into inconsistent performance.  TuneTA uses multi-objective optimization (pareto optimal) to maximize correlation in each time period with respect to deviation.
 
-The figure below illustrates the possibility of achieving high indicator correlation at the expense of inconsistency across the entire dataset (initial high correlation attenuating over time).  Splitting the dataset into parts and maximizing each split with the same set of parameters could potentially provide "smoothed" consistent correlation.  Note, indicator parameters do not differ across splits, rather tuneta tries to select parameter(s) which provide maximum correlation to the target while minimizing deviation of all splits.
+The figure below illustrates the possibility of achieving high indicator correlation at the expense of inconsistency across the entire dataset (initial high correlation attenuating over time).  Splitting the dataset into parts and maximizing each split with the same set of parameters could potentially provide "smoothed" consistent correlation.  Note, indicator parameters do not differ across splits, rather tuneta tries to select parameter(s) which provide maximum correlation to the target while minimizing deviation of all splits.  Note, multi-time period optimization may yield lower overall correlation as it tries to minimize variance especially over longer time periods. 
 
 <p align="center">
   <a href="https://github.com/jmrichardson/tuneta">
@@ -123,6 +123,13 @@ if __name__ == "__main__":
 ```
 
 ***
+
+
+### FAQ
+
+* The first split for mutli-time period optimization tends to have significantly different correlation than the remaining splits?
+
+Calculating a technical indicator typically results in leading NANs until it has enough data.  These NANs are ignored when calculating correlation.  If you have too many splits or a small dataset, these NANs can lead to inflated or deflated correlation compared to the rest.  Adjust the split points to account for leading NANs or increase the dataset size to minimize the effect of leading NANs.
 
 Simple tests performed on the following indicators:
 

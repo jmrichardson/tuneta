@@ -105,6 +105,11 @@ def _min_max(study):
     for trial in study.best_trials:
         df.append([trial.number, np.mean(trial.values), np.std(trial.values)])
 
+    #from scipy.stats import skew
+    #print(trial.values)
+    #print(np.std(trial.values))
+    #print(skew(trial.values))
+
     # Sort dataframe ascending by mean correlation
     df = pd.DataFrame(df).sort_values(by=1, ascending=False)
 
@@ -115,9 +120,9 @@ def _min_max(study):
         # Epsilons define precision, ie dominance over other candidates
         # Dominance is defined as x percent of stddev of each (correlation and stddev)
         nd = pareto.eps_sort([list(df.itertuples(False))], objectives=[1, 2],
-            epsilons=[np.std(df[1])*.15, np.std(df[1])*.5], maximize=[1])
+            epsilons=[np.std(df[1])*.25, np.std(df[1])*.25], maximize=[1])
 
-        # Sort remaining candidates correlation
+        # Sort remaining candidates by correlation
         nd = pd.DataFrame(nd).sort_values(by=1, ascending=False)
 
     # Only 1st trial so return it
@@ -139,8 +144,8 @@ def _multi_early_stopping_opt(study, trial):
     # Get index of this trial
     this_trial = trial.number
 
-    # Custom function to calculate "best" trial
-    # Returns index of best trial (always 0 initiall)
+    # Function to find "best" trial
+    # Returns index of best trial (always 0 initially)
     best_trial = _min_max(study)
 
     # If this trial is best trial then
@@ -227,43 +232,48 @@ def _objective(self, trial, X, y, weights=None, split=None):
     # y may be a subset of X, so reduce result to y and convert to series
     res_y = res.reindex(y.index).iloc[:, 0]
 
+    # Save all trial results for pruning and reporting
+    # Only the best trial will eventually be saved to limit storage requirements
+    self.res_y.append(res_y)  # Save results
+
     # Indicator result may be all NANs based on parameter set
     # Return FALSE and alert
     if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
         print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
+        self.res_y_corr.append(np.zeros(len(y)))
         return False
-
-    # Save all trial results for pruning and reporting
-    # Only the best trial will eventually be saved to limit storage requirements
-    self.res_y.append(res_y)  # Save results
 
     # y and res_y must be arrays
     y = np.array(y)
     res_y = np.array(res_y)
 
+    # Obtain correlation for entire dataset
+    if self.spearman:
+        corr = _weighted_spearman(y, res_y, weights)
+    else:
+        corr = _weighted_pearson(y, res_y, weights)
+
+    # Save correlation for res_y
+    self.res_y_corr.append(corr)
+
     # Multi-objective optimization
     # Obtain correlation to target for each split for Optuna to maximize
     if split is not None:
-        corr = []
+        mo = []
         for i, e in enumerate(split):
             if i == 0:
                 s = e
                 continue
             if self.spearman:
-                corr.append(_weighted_spearman(y[s:e], res_y[s:e], weights[s:e]))
+                mo.append(_weighted_spearman(y[s:e], res_y[s:e], weights[s:e]))
             else:
-                corr.append(_weighted_pearson(y[s:e], res_y[s:e], weights[s:e]))
+                mo.append(_weighted_pearson(y[s:e], res_y[s:e], weights[s:e]))
             s = e
-        return tuple(corr)
+        return tuple(mo)
 
-    # Single objective optimization
-    # Cacluates correlation for entire dataset
+    # Single objective optimization return corr for entire dataset
     else:
-        if self.spearman:
-            ws = _weighted_spearman(y, res_y, weights)
-        else:
-            ws = _weighted_pearson(y, res_y, weights)
-        return ws
+        return corr
 
 
 class Optimize():
@@ -271,6 +281,7 @@ class Optimize():
         self.function = function
         self.n_trials = n_trials
         self.res_y = []
+        self.res_y_corr = []
         self.spearman = spearman
 
     def fit(self, X, y, weights=None, idx=0, verbose=False, early_stop=None, split=None):
@@ -314,6 +325,7 @@ class Optimize():
 
             # Keep only results of best trial for prune and reporting
             self.res_y = self.res_y[self.study.best_trial.number]
+            self.res_y_corr = self.res_y_corr[self.study.best_trial.number]
 
         # Multi objective optimization
         else:
@@ -340,8 +352,16 @@ class Optimize():
             except optuna.exceptions.OptunaError:
                 pass
 
+            # Validation checks
+            if np.mean(self.study.trials[self.study.top_trial].values) != self.study.top_value:
+                raise RuntimeError("Top trial score invalid")
+            if len(self.res_y) != len(self.study.trials) or len(self.res_y) != len(self.res_y_corr):
+                raise RuntimeError("Total results does not equal trials")
+
             # Keep only results of best trial for prune and reporting
             self.res_y = self.res_y[self.study.top_trial]
+            self.res_y_corr = self.res_y_corr[self.study.top_trial]
+
         return self
 
     def transform(self, X):
@@ -352,6 +372,9 @@ class Optimize():
         """
 
         # Calculate and store in features, replacing any potential non-finites (not sure needed)
-        features = _trial(self, self.study.trials[self.study.top_trial], X)
-        features.replace([np.inf, -np.inf], np.nan, inplace=True)
+        if self.split is None:
+            features = _trial(self, self.study.best_trial, X)
+        else:
+            features = _trial(self, self.study.trials[self.study.top_trial], X)
+        # features.replace([np.inf, -np.inf], np.nan, inplace=True)
         return features

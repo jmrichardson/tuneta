@@ -177,19 +177,27 @@ class TuneTA():
         res = pd.concat(self.result, axis=1)
         return res
 
+    # def target_correlation(self):
+        # print("done")
+
     def report(self, target_corr=True, features_corr=True):
-        fns = []
-        cor = []
+        fns = []  # Function names
+        cor = []  # Target Correlation
+        moc = []  # Multi-Time Period Correlation
+        mean_moc = []
         features = []
         for fit in self.fitted:
             if fit.split is None:
                 fns.append(col_name(fit.function, fit.study.best_params))
-                cor.append(round(fit.study.best_value, 6))
             else:
                 fns.append(col_name(fit.function, fit.study.top_params))
-                cor.append(round(fit.study.top_value, 6))
+                moc.append(fit.study.trials[fit.study.top_trial].values)
+                mean_moc.append(np.mean(fit.study.trials[fit.study.top_trial].values))
+
+            cor.append(round(fit.res_y_corr, 6))
             features.append(fit.res_y)
-        fitness = pd.DataFrame(cor, index=fns, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
+        fitness = pd.DataFrame(zip(cor, mean_moc, moc), index=fns, columns=['Correlation', 'Split Mean', 'Split Correlation']).sort_values(by=['Correlation'], ascending=False)
+
         if target_corr:
             print("\nTarget Correlation:\n")
             print(tabulate(fitness, headers=fitness.columns, tablefmt="simple"))
