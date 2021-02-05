@@ -20,8 +20,8 @@ if __name__ == "__main__":
                    # indicators=["tta.MACD", "tta.ULTOSC", "pta.kst"],
                    ranges=[(2, 260)],  # Period range(s) to tune for each indicator
                    trials=100,  # Number of optimization trials per indicator per range
-                   # split=np.linspace(0, len(X_train), num=4).astype(int),  # Define split points
-                   early_stop=10,  # Stop after number of trials without improvement
+                   split=np.linspace(0, len(X_train), num=4).astype(int),  # Define split points
+                   early_stop=20,  # Stop after number of trials without improvement
                    spearman=True,  # Type of correlation metric (Set False for Pearson)
                    weights=None,  # Optional weights for correlation evaluation
                    )

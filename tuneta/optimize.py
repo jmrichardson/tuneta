@@ -111,19 +111,19 @@ def _min_max(study):
     #print(skew(trial.values))
 
     # Sort dataframe ascending by mean correlation
-    df = pd.DataFrame(df).sort_values(by=1, ascending=False)
+    df = pd.DataFrame(df).sort_values(by=2, ascending=True)
 
     # Sort df with best trial in first row
     if len(df) > 1:
 
         # Create second pareto to maximize correlation and minimize stddev
         # Epsilons define precision, ie dominance over other candidates
-        # Dominance is defined as x percent of stddev of each (correlation and stddev)
+        # Dominance is defined as x percent of stddev of stddev
         nd = pareto.eps_sort([list(df.itertuples(False))], objectives=[1, 2],
-            epsilons=[np.std(df[1])*.25, np.std(df[1])*.25], maximize=[1])
+            epsilons=[1e-09, np.std(df[1])*.5], maximize=[1])
 
-        # Sort remaining candidates by correlation
-        nd = pd.DataFrame(nd).sort_values(by=1, ascending=False)
+        # Sort remaining candidates
+        nd = pd.DataFrame(nd).sort_values(by=2, ascending=True)
 
     # Only 1st trial so return it
     else:

@@ -185,6 +185,7 @@ class TuneTA():
         cor = []  # Target Correlation
         moc = []  # Multi-Time Period Correlation
         mean_moc = []
+        std_moc = []  # Multi STD
         features = []
         for fit in self.fitted:
             if fit.split is None:
@@ -193,6 +194,7 @@ class TuneTA():
                 fns.append(col_name(fit.function, fit.study.top_params))
                 moc.append(fit.study.trials[fit.study.top_trial].values)
                 mean_moc.append(np.mean(fit.study.trials[fit.study.top_trial].values))
+                std_moc.append(np.std(fit.study.trials[fit.study.top_trial].values))
 
             cor.append(round(fit.res_y_corr, 6))
             features.append(fit.res_y)
@@ -200,7 +202,7 @@ class TuneTA():
         if fit.split is None:
             fitness = pd.DataFrame(cor, index=fns, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
         else:
-            fitness = pd.DataFrame(zip(cor, mean_moc, moc), index=fns, columns=['Correlation', 'Split Mean', 'Split Correlation']).sort_values(by=['Correlation'], ascending=False)
+            fitness = pd.DataFrame(zip(cor, mean_moc, std_moc, moc), index=fns, columns=['Correlation', 'Split Mean', 'Split STD', 'Split Correlation']).sort_values(by=['Correlation'], ascending=False)
 
         if target_corr:
             print("\nTarget Correlation:\n")
