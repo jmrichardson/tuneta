@@ -264,10 +264,18 @@ def _objective(self, trial, X, y, weights=None, split=None):
             if i == 0:
                 s = e
                 continue
+            y_se = y[s:e]
+            res_y_se = res_y[s:e]
+            weights_se = weights[s:e]
+
+            # Too man NANs in split
+            if np.isnan(res_y_se).sum() / len(res_y_se) > .98:
+                raise ValueError(f"Too many NANs in split {i}")
+
             if self.spearman:
-                mo.append(_weighted_spearman(y[s:e], res_y[s:e], weights[s:e]))
+                mo.append(_weighted_spearman(y_se, res_y_se, weights_se))
             else:
-                mo.append(_weighted_pearson(y[s:e], res_y[s:e], weights[s:e]))
+                mo.append(_weighted_pearson(y_se, res_y_se, weights_se))
             s = e
         return tuple(mo)
 
