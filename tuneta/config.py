@@ -1,9 +1,3 @@
-# Search ranges
-ranges = [(1, 90), (91, 270)]
-
-# Dont use ichimoku or DPO (data leakage)
-indicators = ["pta.rsi", "pta.mom", "pta.macd"]
-
 # Series data
 tune_series = ['open', 'high', 'low', 'close', 'volume']
 
@@ -22,18 +16,3 @@ tune_params = ['width', 'fast', 'slow', 'signal', 'length', 'short', 'max_lookba
                'minperiod', 'maxperiod', 'acceleration', 'accelerationlong', 'accelerationshort', 'signalperiod',
                'slowperiod', 'signalperiod', 'fastperiod', 'fastk_period', 'slowk_period', 'slowd_period',
                'fastd_period']
-
-# tune_params = ['th']
-
-# Index of column to maximize if indicator returns multiple
-tune_column = {
-    "pta.aobv": 5,
-    "pta.thermo": 2,
-    "pta.vp": 5,
-    "pta.bbands": 3,
-    "pta.aroon": 2,
-    "pta.macd": 2,
-}
-
-
-

@@ -11,18 +11,20 @@ TuneTA optimizes a broad set of technical indicators to maximize its correlation
 * Given financial prices (OHLCV) and a target variable such as return, optimizes technical indicator parameters to maximize the correlation to the target variable.
 * Select top x optimized indicators with most correlation to return with the least correlation to each other
 * Persist state to generate identical indicators on multiple datasets (train, validation, test)
+* Split multi-objective optimization
+* Early stopping
+* Correlation report of target and features
+* Parallel processing
 * Supports technical indicators produced from the following packages
   * [Pandas TA](https://github.com/twopirllc/pandas-ta)
   * [TA-Lib](https://github.com/mrjbq7/ta-lib)
   * [FinTA](https://github.com/peerchemist/finta)
-* Parallel processing
-* Correlation report of target and features
 
 ### Overview
 
 TuneTA simplifies the process of optimizing technical indicators and selecting the best (measured by correlation) while minimizing the correlation between each other (optional).  Generally speaking, machine learning models perform better when provided informative inputs that are not strongly intercorrelated.  At a high level, TuneTA performs the following steps:
 
-1.  For each indicator, use an intelligent algorithm to find the best parameters which maximizes its correlation to the user defined target (ie next x day return).  Note the target can be a subset of X which is common for financial labeling such as with [Triple Barrier Labels](https://towardsdatascience.com/financial-machine-learning-part-1-labels-7eeed050f32e).
+1.  For each indicator, use an intelligent algorithm to find the best parameters which maximizes its correlation to the user defined target (ie next x day return).  TuneTA supports parameter optimization across multiple time periods.  Note the target can be a subset of X which is common for financial labeling such as with [Triple Barrier Labels](https://towardsdatascience.com/financial-machine-learning-part-1-labels-7eeed050f32e).
 2.  Optionally, the tuned parameters can be reduced by selecting the top x indicators measured by correlation, then selecting the least intercorrelated.
 3.  Finally, TuneTA will generate each indicator with the best parameters
 
@@ -42,6 +44,25 @@ The following chart shows that of the top 10 strongest correlated indicators, 5 
   </a>
 </p>
 
+### Multi-Time Period Optimization
+
+TuneTA supports the optimization of parameters over an entire dataset or split into multiple time periods.  Technical indicators may not perform consistently across larger time frames due to market fluctuation.  Optimizing technical indicators over distinct time periods can help avoid correlation skew while providing insight into inconsistent performance.  TuneTA uses multi-objective optimization (pareto optimal) to maximize correlation in each time period with respect to deviation.
+
+The figure below illustrates the possibility of achieving high indicator correlation at the expense of inconsistency across the entire dataset (initial high correlation attenuating over time).  Splitting the dataset into parts and maximizing each split with the same set of parameters could potentially provide more consistent correlation.  Note, indicator parameters do not differ across splits, rather tuneta tries to select parameter(s) which provide maximum correlation to the target while minimizing deviation of all splits.  Note, multi-time period optimization may yield lower overall correlation as it tries to minimize variance especially over longer time periods. 
+
+<p align="center">
+  <a href="https://github.com/jmrichardson/tuneta">
+    <img src="images/multi.jpg" alt="Multi-Objective Optimization" width="600">
+  </a>
+</p>
+
+### Early Stopping
+
+Early stopping can be enabled to limit the number of optimization trials due to resource and time constraints:
+
+* Single time period optimization:  Stop after x number of trials performed without improvement in correlation.
+* Multi-time period optimization:  TuneTA finds the best non-dominated candidates of trials to maximize correlation of all time periods along the pareto-front.  A second pareto is generated among theses candidates to minimize deviation with respect to correlation within a pre-defined epsilon.  Stop if there are no changes in the best trial after x number of trials.
+
 ### Installation
 
 Install the latest code(recommended):
@@ -56,6 +77,7 @@ Install the latest release:
 pip install -U tuneta
 ```
 
+
 ### Example Usage
 
 ```python
@@ -64,6 +86,7 @@ import pandas as pd
 from pandas_ta import percent_return
 from tuneta.tune_ta import TuneTA
 from sklearn.model_selection import train_test_split
+import numpy as np
 
 
 if __name__ == "__main__":
@@ -72,33 +95,48 @@ if __name__ == "__main__":
     y = percent_return(X.Close, offset=-1)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3, shuffle=False)
 
-    indicators = TuneTA(n_jobs=2, verbose=True)  # Initialize with 2 cores and show trial results
-    indicators.fit(X_train, y_train,
+    # Initialize with 2 cores and show trial results
+    tt = TuneTA(n_jobs=2, verbose=True)
+
+    # Optimize indicators
+    tt.fit(X_train, y_train,
                    # Indicators to tune / optimize
                    # ":1" means optimize column index 1 vs default 0 if indicator returns dataframe
                    indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
-                   ranges=[(2, 180)],  # Period range(s) to tune for each indicator
-                   trials=300,  # Number of optimization trials per indicator per range
-                   early_stop=25,  # Stop after number of trials without improvement
+                   ranges=[(2, 260)],  # Period range(s) to tune for each indicator
+                   trials=200,  # Number of optimization trials per indicator per range
+                   split=np.linspace(0, len(X_train), num=3).astype(int),  # Define split points
+                   early_stop=30,  # Stop after number of trials without improvement
                    spearman=True,  # Type of correlation metric (Set False for Pearson)
                    weights=None,  # Optional weights for correlation evaluation
                    )
-    indicators.report(target_corr=True, features_corr=True)  # Show correlation report
+
+    # Show correlation of indicators to target
+    tt.report(target_corr=True, features_corr=False)
 
     # Take top x tuned indicators, and select y with the least intercorrelation
-    indicators.prune(top=6, studies=4)
-    indicators.report(target_corr=True, features_corr=True)  # Show correlation report
+    tt.prune(top=6, studies=4)
+
+    # Show correlation of indicators to target and among themselves
+    tt.report(target_corr=True, features_corr=True)
 
     # Add indicators to X_train
-    features = indicators.transform(X_train)
+    features = tt.transform(X_train)
     X_train = pd.concat([X_train, features], axis=1)
 
     # Add same indicators to X_test
-    features = indicators.transform(X_test)
+    features = tt.transform(X_test)
     X_test = pd.concat([X_test, features], axis=1)
 ```
 
 ***
+
+
+### FAQ
+
+* The first split for mutli-time period optimization tends to have significantly different correlation than the remaining splits?
+
+  * Calculating a technical indicator typically results in leading NANs until it has enough data.  These NANs are ignored when calculating correlation.  If you have too many splits or a small dataset, these NANs can lead to inflated or deflated correlation of the first split compared to the rest.  Adjust the split points to account for leading NANs or increase the dataset size to minimize the effect of leading NANs.
 
 Simple tests performed on the following indicators:
 
