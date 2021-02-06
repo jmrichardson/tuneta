@@ -230,7 +230,7 @@ def _objective(self, trial, X, y, weights=None, split=None):
         res = pd.DataFrame(res.iloc[:, self.idx])
 
     # y may be a subset of X, so reduce result to y and convert to series
-    res_y = res.reindex(y.index).iloc[:, 0]
+    res_y = res.reindex(y.index).iloc[:, 0].replace([np.inf, -np.inf], np.nan)
 
     # Save all trial results for pruning and reporting
     # Only the best trial will eventually be saved to limit storage requirements
@@ -384,5 +384,4 @@ class Optimize():
             features = _trial(self, self.study.best_trial, X)
         else:
             features = _trial(self, self.study.trials[self.study.top_trial], X)
-        # features.replace([np.inf, -np.inf], np.nan, inplace=True)
         return features
