@@ -103,7 +103,7 @@ if __name__ == "__main__":
                    # Indicators to tune / optimize
                    # ":1" means optimize column index 1 vs default 0 if indicator returns dataframe
                    indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
-                   ranges=[(2, 260)],  # Period range(s) to tune for each indicator
+                   ranges=[(2, 180)],  # Period range(s) to tune for each indicator
                    trials=200,  # Number of optimization trials per indicator per range
                    split=np.linspace(0, len(X_train), num=3).astype(int),  # Define split points
                    early_stop=30,  # Stop after number of trials without improvement
