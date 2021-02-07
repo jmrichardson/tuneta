@@ -45,7 +45,6 @@ class TuneTA():
         # Utilizes the signature of the indicator (ie user parameters) if available
         # TTA uses help docstrings as signature is not available in C bindings
         # Parameters contained in config.py are tuned
-        # TODO: Add fast-ta
 
         # Iterate user defined search space ranges
         for low, high in ranges:
