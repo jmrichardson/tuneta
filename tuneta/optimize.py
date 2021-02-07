@@ -114,13 +114,17 @@ def _min_max(study):
     df = pd.DataFrame(df).sort_values(by=2, ascending=True)
 
     # Sort df with best trial in first row
-    if len(df) > 1:
+    if len(df) > 1 and len(df.iloc[:, 1:3].drop_duplicates()) > 1:
 
         # Create second pareto to maximize correlation and minimize stddev
         # Epsilons define precision, ie dominance over other candidates
         # Dominance is defined as x percent of stddev of stddev
-        nd = pareto.eps_sort([list(df.itertuples(False))], objectives=[1, 2],
-            epsilons=[1e-09, np.std(df[1])*.5], maximize=[1])
+        try:
+            nd = pareto.eps_sort([list(df.itertuples(False))], objectives=[1, 2],
+                epsilons=[1e-09, np.std(df[1])*.5], maximize=[1])
+        except:
+            # Something went wrong, return df
+            nd = df
 
         # Sort remaining candidates
         nd = pd.DataFrame(nd).sort_values(by=2, ascending=True)
