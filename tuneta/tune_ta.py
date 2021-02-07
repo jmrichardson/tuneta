@@ -176,9 +176,6 @@ class TuneTA():
         res = pd.concat(self.result, axis=1)
         return res
 
-    # def target_correlation(self):
-        # print("done")
-
     def report(self, target_corr=True, features_corr=True):
         fns = []  # Function names
         cor = []  # Target Correlation

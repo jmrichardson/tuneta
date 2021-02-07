@@ -105,11 +105,6 @@ def _min_max(study):
     for trial in study.best_trials:
         df.append([trial.number, np.mean(trial.values), np.std(trial.values)])
 
-    #from scipy.stats import skew
-    #print(trial.values)
-    #print(np.std(trial.values))
-    #print(skew(trial.values))
-
     # Sort dataframe ascending by mean correlation
     df = pd.DataFrame(df).sort_values(by=2, ascending=True)
 
