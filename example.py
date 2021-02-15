@@ -31,6 +31,8 @@ if __name__ == "__main__":
                    weights=None,  # Optional weights for correlation evaluation
                    )
 
+    tt.fit_times()
+
     # Show correlation of indicators to target
     tt.report(target_corr=True, features_corr=False)
 

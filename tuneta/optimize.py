@@ -9,6 +9,7 @@ import re
 import warnings
 import pareto
 warnings.filterwarnings("ignore")
+from timeit import default_timer as timer
 
 
 def col_name(function, study_best_params):
@@ -303,6 +304,8 @@ class Optimize():
         :param split: Split points for multi-objective optimization
         :return:
         """
+
+        start_time = timer()
         self.idx = idx
         self.split = split
 
@@ -368,6 +371,9 @@ class Optimize():
             # Keep only results of best trial for prune and reporting
             self.res_y = self.res_y[self.study.top_trial]
             self.res_y_corr = self.res_y_corr[self.study.top_trial]
+
+        end_time = timer()
+        self.time = round(end_time - start_time, 2)
 
         return self
 

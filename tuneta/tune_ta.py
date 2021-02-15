@@ -211,3 +211,9 @@ class TuneTA():
         if features_corr:
             print("\nFeature Correlation:\n")
             print(tabulate(correlations, headers=correlations.columns, tablefmt="simple"))
+
+    def fit_times(self):
+        times = [fit.time for fit in self.fitted]
+        inds = [fit.function.split('(')[0] for fit in self.fitted]
+        df = pd.DataFrame({'Indicator': inds, 'Times': times}).sort_values(by='Times', ascending=False)
+        print(tabulate(df, headers=df.columns, tablefmt="simple"))
