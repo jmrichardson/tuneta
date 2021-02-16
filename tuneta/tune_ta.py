@@ -155,19 +155,26 @@ class TuneTA():
         # Save only fitted studies (overwriting all studies)
         self.fitted = [self.fitted[i] for i in fitness[components]]
 
-    def transform(self, X):
+    def transform(self, X, columns=None):
         """
         Given X, create features of fitted studies
         :param X: Dataset with features used to create fitted studies
         :return:
         """
+
+        # Remove trailing identifier in column list if present
+        if columns is not None:
+            columns = [re.sub(r'_[0-9]+$', '', s) for s in columns]
+
         X.columns = X.columns.str.lower()  # columns must be lower case
         pool = ProcessPool(nodes=self.n_jobs)  # Number of jobs
         self.result = []
 
         # Iterate fitted studies and calculate TA with fitted parameter set
         for ind in self.fitted:
-            self.result.append(pool.apipe(ind.transform, X))
+            # Create field if no columns or is in columns list
+            if columns is None or ind.res_y.name in columns:
+                self.result.append(pool.apipe(ind.transform, X))
 
         # Blocking wait for asynchronous results
         self.result = [res.get() for res in self.result]

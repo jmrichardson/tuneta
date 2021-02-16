@@ -31,6 +31,7 @@ if __name__ == "__main__":
                    weights=None,  # Optional weights for correlation evaluation
                    )
 
+    # Show time duration in seconds per indicator
     tt.fit_times()
 
     # Show correlation of indicators to target

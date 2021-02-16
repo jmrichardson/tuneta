@@ -108,11 +108,14 @@ if __name__ == "__main__":
                    # Split points are used for multi-objective optimization
                    # 3 split points (num=3) below defines two splits (begin, middle, end)
                    # Use split=None to optimize across all of X_train
-                   split=np.linspace(0, len(X_train), num=3).astype(int), 
+                   split=np.linspace(0, len(X_train), num=3).astype(int),
                    early_stop=30,  # Stop after number of trials without improvement
                    spearman=True,  # Type of correlation metric (Set False for Pearson)
                    weights=None,  # Optional weights for correlation evaluation
                    )
+
+    # Show time duration in seconds per indicator
+    tt.fit_times()
 
     # Show correlation of indicators to target
     tt.report(target_corr=True, features_corr=False)

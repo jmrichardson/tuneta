@@ -335,6 +335,7 @@ class Optimize():
 
             # Keep only results of best trial for prune and reporting
             self.res_y = self.res_y[self.study.best_trial.number]
+            self.res_y.name = col_name(self.function, self.study.best_trial.params)
             self.res_y_corr = self.res_y_corr[self.study.best_trial.number]
 
         # Multi objective optimization
@@ -370,6 +371,7 @@ class Optimize():
 
             # Keep only results of best trial for prune and reporting
             self.res_y = self.res_y[self.study.top_trial]
+            self.res_y.name = col_name(self.function, self.study.trials[self.study.top_trial].params)
             self.res_y_corr = self.res_y_corr[self.study.top_trial]
 
         end_time = timer()
