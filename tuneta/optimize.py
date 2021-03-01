@@ -239,7 +239,6 @@ def _objective(self, trial, X, y, weights=None, split=None):
     # Indicator result may be all NANs based on parameter set
     # Return FALSE and alert
     if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
-        print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
         self.res_y_corr.append(np.zeros(len(y)))
         return False
 
