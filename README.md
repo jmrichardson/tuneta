@@ -95,24 +95,27 @@ if __name__ == "__main__":
     y = percent_return(X.Close, offset=-1)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3, shuffle=False)
 
-    # Initialize with 2 cores and show trial results
+    # Initialize with x cores and show trial results
     tt = TuneTA(n_jobs=2, verbose=True)
 
     # Optimize indicators
     tt.fit(X_train, y_train,
-                   # Indicators to tune / optimize
-                   # ":1" means optimize column index 1 vs default 0 if indicator returns dataframe
-                   indicators=["tta.MACD", "tta.ULTOSC", "tta.AROON:1", "pta.rsi", "pta.kst", "pta.apo", "pta.zlma", "fta.ADX"],
-                   ranges=[(3, 180)],  # Period range(s) to tune for each indicator
-                   trials=200,  # Number of optimization trials per indicator per range
-                   # Split points are used for multi-objective optimization
-                   # 3 split points (num=3) below defines two splits (begin, middle, end)
-                   # Use split=None to optimize across all of X_train
-                   split=np.linspace(0, len(X_train), num=3).astype(int),
-                   early_stop=30,  # Stop after number of trials without improvement
-                   spearman=True,  # Type of correlation metric (Set False for Pearson)
-                   weights=None,  # Optional weights for correlation evaluation
-                   )
+        # List of indicators to optimize.  You can speficy all packages,
+        # specific packages ('tta', 'pta', 'fta') and/or specific indicator(s)
+        # ":1" optimizes column 1 instead of default 0 if indicator returns dataframe
+        # Examples: ['all'], ['tta', 'fta'], ['pta', 'tta.MACD', 'tta.ARRON:1]
+        indicators=['tta'],
+        ranges=[(3, 180)],  # Period range(s) to tune for each indicator
+        trials=100,  # Number of optimization trials per indicator per range
+        # Split points are used for multi-objective optimization
+        # 3 split points (num=3) below defines two splits (begin, middle, end)
+        # split=np.linspace(0, len(X_train), num=3).astype(int),
+        # split=None optimizes across all of X_train
+        split=None,
+        early_stop=20,  # Stop after number of trials without improvement
+        spearman=True,  # Type of correlation metric (Set False for Pearson)
+        weights=None,  # Optional weights for correlation evaluation
+    )
 
     # Show time duration in seconds per indicator
     tt.fit_times()
@@ -121,7 +124,7 @@ if __name__ == "__main__":
     tt.report(target_corr=True, features_corr=False)
 
     # Take top x tuned indicators, and select y with the least intercorrelation
-    tt.prune(top=6, studies=4)
+    tt.prune(top=20, studies=10)
 
     # Show correlation of indicators to target and among themselves
     tt.report(target_corr=True, features_corr=True)
@@ -133,6 +136,7 @@ if __name__ == "__main__":
     # Add same indicators to X_test
     features = tt.transform(X_test)
     X_test = pd.concat([X_test, features], axis=1)
+
 ```
 
 ***
