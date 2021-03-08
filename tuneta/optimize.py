@@ -240,7 +240,10 @@ def _objective(self, trial, X, y, weights=None, split=None):
     # Return FALSE and alert
     if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
         self.res_y_corr.append(np.zeros(len(y)))
-        return False
+        if split is not None:
+            return tuple([False] * (len(split) - 1))
+        else:
+            return False
 
     # y and res_y must be arrays
     y = np.array(y)
@@ -268,8 +271,9 @@ def _objective(self, trial, X, y, weights=None, split=None):
             weights_se = weights[s:e]
 
             # Too man NANs in split
-            if np.isnan(res_y_se).sum() / len(res_y_se) > .98:
-                raise ValueError(f"Too many NANs in split {i}")
+            if np.isnan(res_y_se).sum() / len(res_y_se) > .95:
+                return tuple([False]*(len(split)-1))
+                # raise ValueError(f"Too many NANs in split {i}")
 
             if self.spearman:
                 mo.append(_weighted_spearman(y_se, res_y_se, weights_se))
@@ -316,7 +320,7 @@ class Optimize():
         if split is None:
 
             # Create optuna study maximizing correlation
-            self.study = optuna.create_study(direction='maximize')
+            self.study = optuna.create_study(direction='maximize', study_name=self.function)
 
             # Set required early stopping variables
             self.study.early_stop = early_stop
@@ -342,7 +346,8 @@ class Optimize():
 
             # Create study to maximize eash split
             sampler = optuna.samplers.NSGAIISampler()
-            self.study = optuna.create_study(directions=(len(split)-1) * ['maximize'], sampler=sampler)
+            self.study = optuna.create_study(directions=(len(split)-1) * ['maximize'], sampler=sampler,
+                                             study_name=self.function)
 
             # Early stopping variables
             self.study.early_stop = early_stop

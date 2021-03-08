@@ -12,6 +12,7 @@ import talib as tta
 import re
 from tabulate import tabulate
 from tuneta.optimize import col_name
+from collections import OrderedDict
 
 
 class TuneTA():
@@ -21,7 +22,7 @@ class TuneTA():
         self.n_jobs = n_jobs
         self.verbose = verbose
 
-    def fit(self, X, y, trials=5, indicators=None, ranges=None,
+    def fit(self, X, y, trials=5, indicators=['tta'], ranges=[(3, 180)],
         spearman=True, weights=None, early_stop=99999, split=None):
         """
         Optimize indicator parameters to maximize correlation
@@ -39,6 +40,20 @@ class TuneTA():
         self.fitted = []  # List containing each indicator completed study
         X.columns = X.columns.str.lower()  # columns must be lower case
         pool = ProcessPool(nodes=self.n_jobs)  # Set parallel cores
+
+        # Package level optimization
+        if 'tta' in indicators:
+            indicators = indicators + talib_indicators
+            indicators.remove('tta')
+        if 'pta' in indicators:
+            indicators = indicators + pandas_ta_indicators
+            indicators.remove('pta')
+        if 'fta' in indicators:
+            indicators = indicators + finta_indicatrs
+            indicators.remove('fta')
+        if 'all' in indicators:
+            indicators = talib_indicators + pandas_ta_indicators + finta_indicatrs
+        indicators = list(OrderedDict.fromkeys(indicators))
 
         # Create textual representation of function in Optuna format
         # Example: 'tta.RSI(X.close, length=trial.suggest_int(\'timeperiod1\', 2, 1500))'
@@ -75,6 +90,7 @@ class TuneTA():
                     params = sig.parameters.values()
 
                 # Format function string
+                suggest = False
                 for param in params:
                     param = re.split(':|=', str(param))[0].strip()
                     if param == "open_":
@@ -88,13 +104,19 @@ class TuneTA():
                     elif param in tune_series:
                         fn += f"X.{param}, "
                     elif param in tune_params:
+                        suggest = True
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
                 fn += ")"
 
-                # Asyncrhonous optimization per indicator
-                self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials,
-                    spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
-                    weights=weights, early_stop=early_stop, split=split), )
+                # Only optimize indicators that contain tunable parameters
+                if suggest:
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials,
+                        spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
+                        weights=weights, early_stop=early_stop, split=split), )
+                else:
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1,
+                        spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
+                        weights=weights, early_stop=early_stop, split=split), )
 
         # Blocking wait to retrieve results
         self.fitted = [fit.get() for fit in self.fitted]
