@@ -80,6 +80,8 @@ pip install -U tuneta
 
 ### Example Usage
 
+Note: This example requires "yfinance" module to download dataset from Yahoo.
+
 ```python
 import yfinance as yf
 import pandas as pd
@@ -116,7 +118,6 @@ if __name__ == "__main__":
         weights=None,  # Optional weights for correlation evaluation
     )
 
-
     # Show time duration in seconds per indicator
     tt.fit_times()
 
@@ -136,7 +137,6 @@ if __name__ == "__main__":
     # Add same indicators to X_test
     features = tt.transform(X_test)
     X_test = pd.concat([X_test, features], axis=1)
-
 ```
 
 ***
