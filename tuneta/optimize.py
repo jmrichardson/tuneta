@@ -36,10 +36,10 @@ def _weighted_pearson(y, y_pred, w=None, pearson=True):
     if pearson:
         if w is None:
             w = np.ones(len(y))
-        idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
-        y = np.compress(idx, np.array(y))
-        y_pred = np.compress(idx, np.array(y_pred))
-        w = np.compress(idx, w)
+        # idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
+        # y = np.compress(idx, np.array(y))
+        # y_pred = np.compress(idx, np.array(y_pred))
+        # w = np.compress(idx, w)
     with np.errstate(divide='ignore', invalid='ignore'):
         y_pred_demean = y_pred - np.average(y_pred, weights=w)
         y_demean = y - np.average(y, weights=w)
@@ -54,10 +54,10 @@ def _weighted_pearson(y, y_pred, w=None, pearson=True):
 
 def _weighted_spearman(y, y_pred, w=None):
     """Calculate the weighted Spearman correlation coefficient."""
-    idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
-    y = np.compress(idx, np.array(y))
-    y_pred = np.compress(idx, np.array(y_pred))
-    w = np.compress(idx, w)
+    # idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
+    # y = np.compress(idx, np.array(y))
+    # y_pred = np.compress(idx, np.array(y_pred))
+    # w = np.compress(idx, w)
     y_pred_ranked = np.apply_along_axis(rankdata, 0, y_pred)
     y_ranked = np.apply_along_axis(rankdata, 0, y)
     return _weighted_pearson(y_pred_ranked, y_ranked, w, pearson=False)
