@@ -210,7 +210,7 @@ def _objective(self, trial, X, y, weights=None, split=None):
 
     # Generate even weights if none
     if weights is None:
-        weights = np.ones(len(y))
+        weights = pd.Series(np.ones(len(y)), index=y.index)
 
     # Execute trial function
     try:
@@ -245,15 +245,11 @@ def _objective(self, trial, X, y, weights=None, split=None):
         else:
             return False
 
-    # y and res_y must be arrays
-    y = np.array(y)
-    res_y = np.array(res_y)
-
     # Obtain correlation for entire dataset
     if self.spearman:
-        corr = _weighted_spearman(y, res_y, weights)
+        corr = _weighted_spearman(np.array(y), np.array(res_y), np.array(weights))
     else:
-        corr = _weighted_pearson(y, res_y, weights)
+        corr = _weighted_pearson(np.array(y), np.array(res_y), np.array(weights))
 
     # Save correlation for res_y
     self.res_y_corr.append(corr)
@@ -266,9 +262,21 @@ def _objective(self, trial, X, y, weights=None, split=None):
             if i == 0:
                 s = e
                 continue
-            y_se = y[s:e]
-            res_y_se = res_y[s:e]
-            weights_se = weights[s:e]
+
+            # y could be a subset of X, use index of X to filter y
+            idx = X[s:e].index
+
+            # Filter y based on X split
+            y_se = y.reindex(idx, fill_value=1234.1234)
+            y_se = np.array(y_se[y_se != 1234.1234])
+
+            # Filter y predictions based on X split
+            res_y_se = res_y.reindex(idx, fill_value=1234.1234)
+            res_y_se = np.array(res_y_se[res_y_se != 1234.1234])
+
+            # Filter weights based on X split
+            weights_se = weights.reindex(idx, fill_value=1234.1234)
+            weights_se = np.array(weights_se[weights_se != 1234.1234])
 
             # Too man NANs in split
             if np.isnan(res_y_se).sum() / len(res_y_se) > .95:
