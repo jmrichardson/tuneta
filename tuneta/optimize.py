@@ -267,21 +267,26 @@ def _objective(self, trial, X, y, weights=None, split=None):
             idx = X[s:e].index
 
             # Filter y based on X split
-            y_se = y.reindex(idx, fill_value=1234.1234)
-            y_se = np.array(y_se[y_se != 1234.1234])
+            y_se = y.reindex(idx, fill_value=12345.12345)
+            y_se = np.array(y_se[y_se != 12345.12345]).astype('float64')
 
             # Filter y predictions based on X split
-            res_y_se = res_y.reindex(idx, fill_value=1234.1234)
-            res_y_se = np.array(res_y_se[res_y_se != 1234.1234])
+            res_y_se = res_y.reindex(idx, fill_value=12345.12345)
+            res_y_se = np.array(res_y_se[res_y_se != 12345.12345]).astype('float64')
 
             # Filter weights based on X split
-            weights_se = weights.reindex(idx, fill_value=1234.1234)
-            weights_se = np.array(weights_se[weights_se != 1234.1234])
+            weights_se = weights.reindex(idx, fill_value=12345.12345)
+            weights_se = np.array(weights_se[weights_se != 12345.12345]).astype('float64')
 
             # Too man NANs in split
+            # try:
+                # if np.isnan(res_y_se).sum() / len(res_y_se) > .95:
+                    # return tuple([False] * (len(split) - 1))
+            # except:
+                # return tuple([False]*(len(split)-1))
+
             if np.isnan(res_y_se).sum() / len(res_y_se) > .95:
                 return tuple([False]*(len(split)-1))
-                # raise ValueError(f"Too many NANs in split {i}")
 
             if self.spearman:
                 mo.append(_weighted_spearman(y_se, res_y_se, weights_se))
