@@ -6,4 +6,3 @@ pathos
 tabulate
 scikit-learn
 pareto
-joblib

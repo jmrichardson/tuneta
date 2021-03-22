@@ -29,8 +29,6 @@ if __name__ == "__main__":
         # 3 split points (num=3) below defines two splits (begin, middle, end)
         # split=np.linspace(0, len(X_train), num=3).astype(int),
         early_stop=30,  # Stop after x number of trials without improvement
-        spearman=True,  # Type of correlation metric (Set False for Pearson)
-        weights=None,  # Optional weights for correlation evaluation
     )
 
     # Show time duration in seconds per indicator
