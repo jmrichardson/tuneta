@@ -267,23 +267,13 @@ def _objective(self, trial, X, y, weights=None, split=None):
             idx = X[s:e].index
 
             # Filter y based on X split
-            y_se = y.reindex(idx, fill_value=12345.12345)
-            y_se = np.array(y_se[y_se != 12345.12345]).astype('float64')
+            y_se = np.array(y[y.index.isin(idx)]).astype('float64')
 
             # Filter y predictions based on X split
-            res_y_se = res_y.reindex(idx, fill_value=12345.12345)
-            res_y_se = np.array(res_y_se[res_y_se != 12345.12345]).astype('float64')
+            res_y_se = np.array(res_y[res_y.index.isin(idx)]).astype('float64')
 
             # Filter weights based on X split
-            weights_se = weights.reindex(idx, fill_value=12345.12345)
-            weights_se = np.array(weights_se[weights_se != 12345.12345]).astype('float64')
-
-            # Too man NANs in split
-            # try:
-                # if np.isnan(res_y_se).sum() / len(res_y_se) > .95:
-                    # return tuple([False] * (len(split) - 1))
-            # except:
-                # return tuple([False]*(len(split)-1))
+            weights_se = np.array(weights[weights.index.isin(idx)]).astype('float64')
 
             if np.isnan(res_y_se).sum() / len(res_y_se) > .95:
                 return tuple([False]*(len(split)-1))
