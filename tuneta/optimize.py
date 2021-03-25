@@ -24,7 +24,7 @@ def col_name(function, study_best_params):
     function_name = function.split("(")[0]
 
     # Optuna string of parameters
-    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_")
+    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_").replace(":", "_")
 
     # Concatenate name and params to define
     col = f"{function_name}_{params}"
@@ -211,6 +211,8 @@ def _objective(self, trial, X, y, weights=None, split=None):
     # Generate even weights if none
     if weights is None:
         weights = pd.Series(np.ones(len(y)), index=y.index)
+    else:
+        weights = pd.Series(weights, index=y.index)
 
     # Execute trial function
     try:
