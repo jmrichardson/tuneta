@@ -21,7 +21,7 @@ def col_name(function, study_best_params):
     """
 
     # Optuna string of indicator
-    function_name = function.split("(")[0]
+    function_name = function.split("(")[0].replace(".", "_")
 
     # Optuna string of parameters
     params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_").replace(":", "_")
