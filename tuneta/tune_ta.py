@@ -119,6 +119,7 @@ class TuneTA():
                         weights=weights, early_stop=early_stop, split=split), )
 
         # Blocking wait to retrieve results
+        # if item comes back as non-numerical dont add
         self.fitted = [fit.get() for fit in self.fitted if isinstance(fit.get().res_y_corr,(float,int))]
 
         # Some items might come back as an array
