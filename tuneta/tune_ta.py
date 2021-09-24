@@ -119,7 +119,16 @@ class TuneTA():
                         weights=weights, early_stop=early_stop, split=split), )
 
         # Blocking wait to retrieve results
-        self.fitted = [fit.get() for fit in self.fitted]
+        # if item comes back as non-numerical dont add
+        self.fitted = [fit.get() for fit in self.fitted if isinstance(fit.get().res_y_corr,(float,int))]
+
+        # Some items might come back as an array
+        # if they are cant be a float skip
+        for i in self.fitted:
+            try:
+                float(i.res_y_corr)
+            except:
+                continue
 
     def prune(self, top=2, studies=1):
         """
@@ -213,6 +222,7 @@ class TuneTA():
         std_moc = []  # Multi STD
         features = []
         for fit in self.fitted:
+
             if fit.split is None:
                 fns.append(col_name(fit.function, fit.study.best_params))
             else:
@@ -221,7 +231,8 @@ class TuneTA():
                 mean_moc.append(np.mean(fit.study.trials[fit.study.top_trial].values))
                 std_moc.append(np.std(fit.study.trials[fit.study.top_trial].values))
 
-            cor.append(round(fit.res_y_corr, 6))
+
+            cor.append(np.round(fit.res_y_corr, 6))
             features.append(fit.res_y)
 
         if fit.split is None:
