@@ -9,6 +9,7 @@ import re
 import warnings
 import pareto
 warnings.filterwarnings("ignore")
+from timeit import default_timer as timer
 
 
 def col_name(function, study_best_params):
@@ -20,10 +21,10 @@ def col_name(function, study_best_params):
     """
 
     # Optuna string of indicator
-    function_name = function.split("(")[0]
+    function_name = function.split("(")[0].replace(".", "_")
 
     # Optuna string of parameters
-    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_")
+    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_").replace(":", "_")
 
     # Concatenate name and params to define
     col = f"{function_name}_{params}"
@@ -35,10 +36,10 @@ def _weighted_pearson(y, y_pred, w=None, pearson=True):
     if pearson:
         if w is None:
             w = np.ones(len(y))
-        idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
-        y = np.compress(idx, np.array(y))
-        y_pred = np.compress(idx, np.array(y_pred))
-        w = np.compress(idx, w)
+        # idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
+        # y = np.compress(idx, np.array(y))
+        # y_pred = np.compress(idx, np.array(y_pred))
+        # w = np.compress(idx, w)
     with np.errstate(divide='ignore', invalid='ignore'):
         y_pred_demean = y_pred - np.average(y_pred, weights=w)
         y_demean = y - np.average(y, weights=w)
@@ -53,10 +54,10 @@ def _weighted_pearson(y, y_pred, w=None, pearson=True):
 
 def _weighted_spearman(y, y_pred, w=None):
     """Calculate the weighted Spearman correlation coefficient."""
-    idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
-    y = np.compress(idx, np.array(y))
-    y_pred = np.compress(idx, np.array(y_pred))
-    w = np.compress(idx, w)
+    # idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
+    # y = np.compress(idx, np.array(y))
+    # y_pred = np.compress(idx, np.array(y_pred))
+    # w = np.compress(idx, w)
     y_pred_ranked = np.apply_along_axis(rankdata, 0, y_pred)
     y_ranked = np.apply_along_axis(rankdata, 0, y)
     return _weighted_pearson(y_pred_ranked, y_ranked, w, pearson=False)
@@ -104,11 +105,6 @@ def _min_max(study):
     df = []
     for trial in study.best_trials:
         df.append([trial.number, np.mean(trial.values), np.std(trial.values)])
-
-    #from scipy.stats import skew
-    #print(trial.values)
-    #print(np.std(trial.values))
-    #print(skew(trial.values))
 
     # Sort dataframe ascending by mean correlation
     df = pd.DataFrame(df).sort_values(by=2, ascending=True)
@@ -214,7 +210,9 @@ def _objective(self, trial, X, y, weights=None, split=None):
 
     # Generate even weights if none
     if weights is None:
-        weights = np.ones(len(y))
+        weights = pd.Series(np.ones(len(y)), index=y.index)
+    else:
+        weights = pd.Series(weights, index=y.index)
 
     # Execute trial function
     try:
@@ -243,19 +241,17 @@ def _objective(self, trial, X, y, weights=None, split=None):
     # Indicator result may be all NANs based on parameter set
     # Return FALSE and alert
     if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
-        print(f"INFO: Optimization trial produced mostly NANs: {self.function}")
         self.res_y_corr.append(np.zeros(len(y)))
-        return False
-
-    # y and res_y must be arrays
-    y = np.array(y)
-    res_y = np.array(res_y)
+        if split is not None:
+            return tuple([False] * (len(split) - 1))
+        else:
+            return False
 
     # Obtain correlation for entire dataset
     if self.spearman:
-        corr = _weighted_spearman(y, res_y, weights)
+        corr = _weighted_spearman(np.array(y), np.array(res_y), np.array(weights))
     else:
-        corr = _weighted_pearson(y, res_y, weights)
+        corr = _weighted_pearson(np.array(y), np.array(res_y), np.array(weights))
 
     # Save correlation for res_y
     self.res_y_corr.append(corr)
@@ -268,13 +264,21 @@ def _objective(self, trial, X, y, weights=None, split=None):
             if i == 0:
                 s = e
                 continue
-            y_se = y[s:e]
-            res_y_se = res_y[s:e]
-            weights_se = weights[s:e]
 
-            # Too man NANs in split
-            if np.isnan(res_y_se).sum() / len(res_y_se) > .98:
-                raise ValueError(f"Too many NANs in split {i}")
+            # y could be a subset of X, use index of X to filter y
+            idx = X[s:e].index
+
+            # Filter y based on X split
+            y_se = np.array(y[y.index.isin(idx)]).astype('float64')
+
+            # Filter y predictions based on X split
+            res_y_se = np.array(res_y[res_y.index.isin(idx)]).astype('float64')
+
+            # Filter weights based on X split
+            weights_se = np.array(weights[weights.index.isin(idx)]).astype('float64')
+
+            if np.isnan(res_y_se).sum() / len(res_y_se) > .95:
+                return tuple([False]*(len(split)-1))
 
             if self.spearman:
                 mo.append(_weighted_spearman(y_se, res_y_se, weights_se))
@@ -308,6 +312,8 @@ class Optimize():
         :param split: Split points for multi-objective optimization
         :return:
         """
+
+        start_time = timer()
         self.idx = idx
         self.split = split
 
@@ -319,7 +325,7 @@ class Optimize():
         if split is None:
 
             # Create optuna study maximizing correlation
-            self.study = optuna.create_study(direction='maximize')
+            self.study = optuna.create_study(direction='maximize', study_name=self.function)
 
             # Set required early stopping variables
             self.study.early_stop = early_stop
@@ -337,6 +343,7 @@ class Optimize():
 
             # Keep only results of best trial for prune and reporting
             self.res_y = self.res_y[self.study.best_trial.number]
+            self.res_y.name = col_name(self.function, self.study.best_trial.params)
             self.res_y_corr = self.res_y_corr[self.study.best_trial.number]
 
         # Multi objective optimization
@@ -344,7 +351,8 @@ class Optimize():
 
             # Create study to maximize eash split
             sampler = optuna.samplers.NSGAIISampler()
-            self.study = optuna.create_study(directions=(len(split)-1) * ['maximize'], sampler=sampler)
+            self.study = optuna.create_study(directions=(len(split)-1) * ['maximize'], sampler=sampler,
+                                             study_name=self.function)
 
             # Early stopping variables
             self.study.early_stop = early_stop
@@ -372,7 +380,11 @@ class Optimize():
 
             # Keep only results of best trial for prune and reporting
             self.res_y = self.res_y[self.study.top_trial]
+            self.res_y.name = col_name(self.function, self.study.trials[self.study.top_trial].params)
             self.res_y_corr = self.res_y_corr[self.study.top_trial]
+
+        end_time = timer()
+        self.time = round(end_time - start_time, 2)
 
         return self
 

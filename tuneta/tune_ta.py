@@ -12,6 +12,7 @@ import talib as tta
 import re
 from tabulate import tabulate
 from tuneta.optimize import col_name
+from collections import OrderedDict
 
 
 class TuneTA():
@@ -21,7 +22,7 @@ class TuneTA():
         self.n_jobs = n_jobs
         self.verbose = verbose
 
-    def fit(self, X, y, trials=5, indicators=None, ranges=None,
+    def fit(self, X, y, trials=5, indicators=['tta'], ranges=[(3, 180)],
         spearman=True, weights=None, early_stop=99999, split=None):
         """
         Optimize indicator parameters to maximize correlation
@@ -40,12 +41,25 @@ class TuneTA():
         X.columns = X.columns.str.lower()  # columns must be lower case
         pool = ProcessPool(nodes=self.n_jobs)  # Set parallel cores
 
+        # Package level optimization
+        if 'tta' in indicators:
+            indicators = indicators + talib_indicators
+            indicators.remove('tta')
+        if 'pta' in indicators:
+            indicators = indicators + pandas_ta_indicators
+            indicators.remove('pta')
+        if 'fta' in indicators:
+            indicators = indicators + finta_indicatrs
+            indicators.remove('fta')
+        if 'all' in indicators:
+            indicators = talib_indicators + pandas_ta_indicators + finta_indicatrs
+        indicators = list(OrderedDict.fromkeys(indicators))
+
         # Create textual representation of function in Optuna format
         # Example: 'tta.RSI(X.close, length=trial.suggest_int(\'timeperiod1\', 2, 1500))'
         # Utilizes the signature of the indicator (ie user parameters) if available
         # TTA uses help docstrings as signature is not available in C bindings
         # Parameters contained in config.py are tuned
-        # TODO: Add fast-ta
 
         # Iterate user defined search space ranges
         for low, high in ranges:
@@ -76,6 +90,7 @@ class TuneTA():
                     params = sig.parameters.values()
 
                 # Format function string
+                suggest = False
                 for param in params:
                     param = re.split(':|=', str(param))[0].strip()
                     if param == "open_":
@@ -89,16 +104,31 @@ class TuneTA():
                     elif param in tune_series:
                         fn += f"X.{param}, "
                     elif param in tune_params:
+                        suggest = True
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
                 fn += ")"
 
-                # Asyncrhonous optimization per indicator
-                self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials,
-                    spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
-                    weights=weights, early_stop=early_stop, split=split), )
+                # Only optimize indicators that contain tunable parameters
+                if suggest:
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials,
+                        spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
+                        weights=weights, early_stop=early_stop, split=split), )
+                else:
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1,
+                        spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
+                        weights=weights, early_stop=early_stop, split=split), )
 
         # Blocking wait to retrieve results
-        self.fitted = [fit.get() for fit in self.fitted]
+        # if item comes back as non-numerical dont add
+        self.fitted = [fit.get() for fit in self.fitted if isinstance(fit.get().res_y_corr,(float,int))]
+
+        # Some items might come back as an array
+        # if they are cant be a float skip
+        for i in self.fitted:
+            try:
+                float(i.res_y_corr)
+            except:
+                continue
 
     def prune(self, top=2, studies=1):
         """
@@ -156,19 +186,26 @@ class TuneTA():
         # Save only fitted studies (overwriting all studies)
         self.fitted = [self.fitted[i] for i in fitness[components]]
 
-    def transform(self, X):
+    def transform(self, X, columns=None):
         """
         Given X, create features of fitted studies
         :param X: Dataset with features used to create fitted studies
         :return:
         """
+
+        # Remove trailing identifier in column list if present
+        if columns is not None:
+            columns = [re.sub(r'_[0-9]+$', '', s) for s in columns]
+
         X.columns = X.columns.str.lower()  # columns must be lower case
         pool = ProcessPool(nodes=self.n_jobs)  # Number of jobs
         self.result = []
 
         # Iterate fitted studies and calculate TA with fitted parameter set
         for ind in self.fitted:
-            self.result.append(pool.apipe(ind.transform, X))
+            # Create field if no columns or is in columns list
+            if columns is None or ind.res_y.name in columns:
+                self.result.append(pool.apipe(ind.transform, X))
 
         # Blocking wait for asynchronous results
         self.result = [res.get() for res in self.result]
@@ -176,9 +213,6 @@ class TuneTA():
         # Combine results into dataframe to return
         res = pd.concat(self.result, axis=1)
         return res
-
-    # def target_correlation(self):
-        # print("done")
 
     def report(self, target_corr=True, features_corr=True):
         fns = []  # Function names
@@ -188,6 +222,7 @@ class TuneTA():
         std_moc = []  # Multi STD
         features = []
         for fit in self.fitted:
+
             if fit.split is None:
                 fns.append(col_name(fit.function, fit.study.best_params))
             else:
@@ -196,7 +231,8 @@ class TuneTA():
                 mean_moc.append(np.mean(fit.study.trials[fit.study.top_trial].values))
                 std_moc.append(np.std(fit.study.trials[fit.study.top_trial].values))
 
-            cor.append(round(fit.res_y_corr, 6))
+
+            cor.append(np.round(fit.res_y_corr, 6))
             features.append(fit.res_y)
 
         if fit.split is None:
@@ -215,3 +251,9 @@ class TuneTA():
         if features_corr:
             print("\nFeature Correlation:\n")
             print(tabulate(correlations, headers=correlations.columns, tablefmt="simple"))
+
+    def fit_times(self):
+        times = [fit.time for fit in self.fitted]
+        inds = [fit.function.split('(')[0] for fit in self.fitted]
+        df = pd.DataFrame({'Indicator': inds, 'Times': times}).sort_values(by='Times', ascending=False)
+        print(tabulate(df, headers=df.columns, tablefmt="simple"))
