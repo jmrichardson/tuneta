@@ -258,10 +258,12 @@ class TuneTA():
         df = pd.DataFrame({'Indicator': inds, 'Times': times}).sort_values(by='Times', ascending=False)
         print(tabulate(df, headers=df.columns, tablefmt="simple"))
 
-    def get_indictor_params(self):
-        self.return_ind_params = []
-        for ind in self.fitted:
-            study_dict = ind.study.best_params
-            study_dict['kind'] = ind.function.split('(')[0]
-            self.return_ind_params.append(study_dict)
+    def get_indicator_params(self,type='PTA'):
+        # WIP for other indicators
+        self.indicator_params = []
+        if type == 'PTA':
+            for ind in self.fitted:
+                study_dict = ind.study.best_params
+                study_dict['kind'] = ind.function.split('(')[0]
+                self.indicator_params.append(study_dict)
 
