@@ -213,6 +213,14 @@ class TuneTA():
         std_moc = []  # Multi STD
         features = []
         for fit in self.fitted:
+
+            # Some items might come back as an array
+            # if they are cant be a float skip
+            try:
+                float(self.fitted[5].res_y_corr)
+            except:
+                continue
+
             if fit.split is None:
                 fns.append(col_name(fit.function, fit.study.best_params))
             else:
@@ -220,6 +228,7 @@ class TuneTA():
                 moc.append(fit.study.trials[fit.study.top_trial].values)
                 mean_moc.append(np.mean(fit.study.trials[fit.study.top_trial].values))
                 std_moc.append(np.std(fit.study.trials[fit.study.top_trial].values))
+
 
             cor.append(np.round(fit.res_y_corr, 6))
             features.append(fit.res_y)
