@@ -106,6 +106,10 @@ class TuneTA():
                     elif param in tune_params:
                         suggest = True
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
+                    elif param in tune_ma_params:
+                        suggest = True
+                        fn += f"{param}=trial.suggest_categorical('{param}', {tune_ma_params}), "
+
                 fn += ")"
 
                 # Only optimize indicators that contain tunable parameters

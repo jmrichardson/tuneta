@@ -13,7 +13,11 @@ tune_params = ['width', 'fast', 'slow', 'signal', 'length', 'max_lookback', 'min
                'k_period', 'timeperiod', 'timeperiod1', 'timeperiod2', 'timeperiod3', 'slowlimit', 'fastlimit',
                'minperiod', 'maxperiod', 'acceleration', 'accelerationlong', 'accelerationshort', 'signalperiod',
                'slowperiod', 'signalperiod', 'fastperiod', 'fastk_period', 'slowk_period', 'slowd_period',
-               'fastd_period']
+               'fastd_period','drift','kc_scalar_wide','kc_scalar_normal','kc_scalar_narrow','bb_std','ddof','std','tclength']
+
+tune_ma_params = [
+        "dema", "ema", "fwma", "hma", "linreg", "midpoint", "pwma", "rma","sinwma", "sma", "swma", "t3", "tema", "trima", "vidya", "wma", "zlma"
+    ]
 
 talib_indicators = ['tta.BBANDS', 'tta.DEMA', 'tta.EMA', 'tta.HT_TRENDLINE', 'tta.KAMA', 'tta.MA',
                         'tta.MIDPOINT', 'tta.MIDPRICE', 'tta.SAR', 'tta.SAREXT', 'tta.SMA', 'tta.T3', 'tta.TEMA',
@@ -63,7 +67,8 @@ pandas_ta_indicators = ['pta.ebsw', 'pta.stdev', 'pta.mad', 'pta.quantile', 'pta
     'pta.pvo', 'pta.amat', 'pta.adx', 'pta.vortex', 'pta.qstick', 'pta.psar', 'pta.decay', 'pta.cksp', 'pta.chop', 'pta.ttm_trend', 'pta.vhf',
     'pta.aroon', 'pta.dpo', 'pta.donchian', 'pta.accbands', 'pta.ui', 'pta.hwc', 'pta.natr', 'pta.atr', 'pta.true_range', 'pta.massi', 'pta.thermo', 'pta.aberration', 'pta.kc',
     'pta.bbands', 'pta.pdist', 'pta.rvi', 'pta.pvt', 'pta.efi', 'pta.adosc', 'pta.aobv', 'pta.kvo', 'pta.pvi', 'pta.nvi', 'pta.vp', 'pta.mfi', 'pta.obv', 'pta.pvol', 'pta.eom',
-    'pta.pvr', 'pta.ad', 'pta.cmf']
+    'pta.pvr', 'pta.ad', 'pta.cmf',"pta.dema", "pta.ema", "pta.fwma", "pta.hma", "pta.linreg", "pta.midpoint", "pta.pwma", "pta.rma","sinwma", "pta.sma", "pta.swma", "pta.t3",
+    "pta.tema", "pta.trima", "pta.vidya", "pta.wma", "pta.zlma"]
 
 finta_indicatrs = ['fta.SMA', 'fta.SMM', 'fta.SSMA', 'fta.EMA', 'fta.DEMA', 'fta.TEMA', 'fta.TRIMA', 'fta.TRIX',
                    'fta.VAMA', 'fta.ER', 'fta.KAMA', 'fta.ZLEMA', 'fta.WMA', 'fta.HMA', 'fta.EVWMA', 'fta.VWAP',
