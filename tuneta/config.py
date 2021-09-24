@@ -60,7 +60,7 @@ pandas_ta_indicators = ['pta.ebsw', 'pta.stdev', 'pta.mad', 'pta.quantile', 'pta
     'pta.entropy', 'pta.eri', 'pta.bias', 'pta.cg', 'pta.willr', 'pta.psl', 'pta.rvgi', 'pta.kdj', 'pta.smi', 'pta.fisher', 'pta.macd', 'pta.mom', 'pta.stochrsi',
     'pta.apo', 'pta.squeeze_pro', 'pta.inertia', 'pta.cmo', 'pta.slope', 'pta.roc', 'pta.rsx', 'pta.dm', 'pta.cci', 'pta.cti', 'pta.er', 'pta.uo', 'pta.bop', 'pta.cfo',
     'pta.stc', 'pta.tsi', 'pta.ao', 'pta.stoch', 'pta.qqe', 'pta.coppock', 'pta.rsi', 'pta.trix', 'pta.ppo', 'pta.pgo', 'pta.squeeze', 'pta.brar', 'pta.td_seq', 'pta.kst',
-    'pta.pvo', 'pta.short_run', 'pta.amat', 'pta.adx', 'pta.vortex', 'pta.qstick', 'pta.psar', 'pta.decay', 'pta.cksp', 'pta.chop', 'pta.ttm_trend', 'pta.long_run', 'pta.vhf',
+    'pta.pvo', 'pta.amat', 'pta.adx', 'pta.vortex', 'pta.qstick', 'pta.psar', 'pta.decay', 'pta.cksp', 'pta.chop', 'pta.ttm_trend', 'pta.vhf',
     'pta.aroon', 'pta.dpo', 'pta.donchian', 'pta.accbands', 'pta.ui', 'pta.hwc', 'pta.natr', 'pta.atr', 'pta.true_range', 'pta.massi', 'pta.thermo', 'pta.aberration', 'pta.kc',
     'pta.bbands', 'pta.pdist', 'pta.rvi', 'pta.pvt', 'pta.efi', 'pta.adosc', 'pta.aobv', 'pta.kvo', 'pta.pvi', 'pta.nvi', 'pta.vp', 'pta.mfi', 'pta.obv', 'pta.pvol', 'pta.eom',
     'pta.pvr', 'pta.ad', 'pta.cmf']
