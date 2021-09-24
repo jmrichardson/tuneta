@@ -221,7 +221,7 @@ class TuneTA():
                 mean_moc.append(np.mean(fit.study.trials[fit.study.top_trial].values))
                 std_moc.append(np.std(fit.study.trials[fit.study.top_trial].values))
 
-            cor.append(round(fit.res_y_corr, 6))
+            cor.append(np.round(fit.res_y_corr, 6))
             features.append(fit.res_y)
 
         if fit.split is None:
