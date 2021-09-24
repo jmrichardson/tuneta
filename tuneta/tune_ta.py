@@ -70,6 +70,7 @@ class TuneTA():
 
             # Iterate indicators per range
             for ind in indicators:
+                print(ind)
 
                 # Index column to optimize if indicator returns dataframe
                 idx = 0
