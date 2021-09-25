@@ -105,7 +105,11 @@ class TuneTA():
                         fn += f"X.{param}, "
                     elif param in tune_params:
                         suggest = True
-                        fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
+                        if param in ['mamode']:
+                            fn += f"{param}=trial.suggest_categorical('{param}', {tune_ta_mm}), "
+                        else:
+                            fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
+
                     elif param in tune_params:
                         suggest = True
                         fn += f"{param}=trial.suggest_categorical('{param}', {tune_ta_mm}), "
