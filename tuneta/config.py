@@ -13,7 +13,7 @@ tune_params = ['width', 'fast', 'slow', 'signal', 'length', 'max_lookback', 'min
                'k_period', 'timeperiod', 'timeperiod1', 'timeperiod2', 'timeperiod3', 'slowlimit', 'fastlimit',
                'minperiod', 'maxperiod', 'acceleration', 'accelerationlong', 'accelerationshort', 'signalperiod',
                'slowperiod', 'signalperiod', 'fastperiod', 'fastk_period', 'slowk_period', 'slowd_period',
-               'fastd_period','drift','kc_scalar_wide','kc_scalar_normal','kc_scalar_narrow','bb_std','ddof','std','tclength']
+               'fastd_period','drift','bb_std','ddof','std','tclength','mom_smooth']
 
 tune_ma_params = [
         "dema", "ema", "fwma", "hma", "linreg", "midpoint", "pwma", "rma","sinwma", "sma", "swma", "t3", "tema", "trima", "vidya", "wma", "zlma"
