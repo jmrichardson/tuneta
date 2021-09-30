@@ -1,9 +1,8 @@
-import yfinance as yf
+from tuneta.tune_ta import TuneTA
 import pandas as pd
 from pandas_ta import percent_return
-from tuneta.tune_ta import TuneTA
 from sklearn.model_selection import train_test_split
-import numpy as np
+import yfinance as yf  # pip install yfinance to run this example
 
 
 if __name__ == "__main__":
@@ -13,22 +12,18 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3, shuffle=False)
 
     # Initialize with x cores and show trial results
-    tt = TuneTA(n_jobs=2, verbose=True)
+    tt = TuneTA(n_jobs=5, verbose=True)
 
     # Optimize indicators
     tt.fit(X_train, y_train,
         # List of indicators to optimize.  You can speficy all packages ('all'),
         # specific packages ('tta', 'pta', 'fta') and/or specific indicator(ie, 'tta.MACD', 'pta.ema')
         # ":1" optimizes column 1 instead of default 0 if indicator returns dataframe
-        # Examples: ['all'], ['tta', 'fta'], ['pta', 'tta.MACD', 'tta.ARRON:1]
-        indicators=['tta'],  # Optimize all TA-Lib indicators
-        ranges=[(3, 180)],  # Period range(s) to tune for each indicator
-        trials=200,  # Number of optimization trials per indicator per range
-        split=None,  # Optimize across all of X_train (single-objective)
-        # Split points are used for multi-objective optimization
-        # 3 split points (num=3) below defines two splits (begin, middle, end)
-        # split=np.linspace(0, len(X_train), num=3).astype(int),
-        early_stop=30,  # Stop after x number of trials without improvement
+        # Examples: ['all'], ['tta', 'fta'], ['pta', 'tta.MACD', 'tta.ARRON:1']
+        indicators=['tta.RSI', 'tta.MACD', 'tta.EMA', 'tta.MA', 'tta.SAR', 'tta.STOCHF'],
+        ranges=[(2, 90), (91, 300)],  # Period range(s) to tune indicator (short and long term)
+        trials=500,  # Trials per indicator range
+        early_stop=50,  # Stop after x number of trials without improvement
     )
 
     # Show time duration in seconds per indicator
@@ -37,8 +32,8 @@ if __name__ == "__main__":
     # Show correlation of indicators to target
     tt.report(target_corr=True, features_corr=False)
 
-    # Take top x tuned indicators, and select y with the least intercorrelation
-    tt.prune(top=30, studies=10)
+    # Select top x tuned indicators with least intercorrelation
+    tt.prune(top=3)  # Be patient, time consuming for many indicators
 
     # Show correlation of indicators to target and among themselves
     tt.report(target_corr=True, features_corr=True)

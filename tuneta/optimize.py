@@ -1,67 +1,19 @@
 import optuna
 import pandas as pd
 import numpy as np
-from scipy.stats import rankdata
 import pandas_ta as pta
 from finta import TA as fta
 import talib as tta
-import re
-import warnings
-import pareto
-warnings.filterwarnings("ignore")
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics.pairwise import euclidean_distances
+from optuna.trial import TrialState
 from timeit import default_timer as timer
-
-
-def col_name(function, study_best_params):
-    """
-    Create consistent column names given string function and params
-    :param function:  Function represented as string
-    :param study_best_params:  Params for function
-    :return:
-    """
-
-    # Optuna string of indicator
-    function_name = function.split("(")[0].replace(".", "_")
-
-    # Optuna string of parameters
-    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_").replace(":", "_")
-
-    # Concatenate name and params to define
-    col = f"{function_name}_{params}"
-    return col
-
-
-def _weighted_pearson(y, y_pred, w=None, pearson=True):
-    """Calculate the weighted Pearson correlation coefficient."""
-    if pearson:
-        if w is None:
-            w = np.ones(len(y))
-        # idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
-        # y = np.compress(idx, np.array(y))
-        # y_pred = np.compress(idx, np.array(y_pred))
-        # w = np.compress(idx, w)
-    with np.errstate(divide='ignore', invalid='ignore'):
-        y_pred_demean = y_pred - np.average(y_pred, weights=w)
-        y_demean = y - np.average(y, weights=w)
-        corr = ((np.sum(w * y_pred_demean * y_demean) / np.sum(w)) /
-                np.sqrt((np.sum(w * y_pred_demean ** 2) *
-                         np.sum(w * y_demean ** 2)) /
-                        (np.sum(w) ** 2)))
-    if np.isfinite(corr):
-        return np.abs(corr)
-    return 0.
-
-
-def _weighted_spearman(y, y_pred, w=None):
-    """Calculate the weighted Spearman correlation coefficient."""
-    # idx = ~np.logical_or(np.isnan(y_pred), np.isnan(y))  # Drop NAs w/boolean mask
-    # y = np.compress(idx, np.array(y))
-    # y_pred = np.compress(idx, np.array(y_pred))
-    # w = np.compress(idx, w)
-    y_pred_ranked = np.apply_along_axis(rankdata, 0, y_pred)
-    y_ranked = np.apply_along_axis(rankdata, 0, y)
-    return _weighted_pearson(y_pred_ranked, y_ranked, w, pearson=False)
-
+from tuneta.utils import col_name
+from tuneta.utils import distance_correlation
+from yellowbrick.cluster import KElbowVisualizer
+import warnings
+warnings.filterwarnings("ignore")
 
 def _trial(self, trial, X):
     """
@@ -93,89 +45,20 @@ def _trial(self, trial, X):
     return res
 
 
-# Minimize difference, Maximize Total
-def _min_max(study):
-    """
-    Multi-objective function to find best trial index with minimum deviation and max correlation
-    :param study: Optuna study
-    :return:
-    """
-
-    # Iterate pareto-front trials storing mean correlation and std dev
-    df = []
-    for trial in study.best_trials:
-        df.append([trial.number, np.mean(trial.values), np.std(trial.values)])
-
-    # Sort dataframe ascending by mean correlation
-    df = pd.DataFrame(df).sort_values(by=2, ascending=True)
-
-    # Sort df with best trial in first row
-    if len(df) > 1 and len(df.iloc[:, 1:3].drop_duplicates()) > 1:
-
-        # Create second pareto to maximize correlation and minimize stddev
-        # Epsilons define precision, ie dominance over other candidates
-        # Dominance is defined as x percent of stddev of stddev
-        try:
-            nd = pareto.eps_sort([list(df.itertuples(False))], objectives=[1, 2],
-                epsilons=[1e-09, np.std(df[1])*.5], maximize=[1])
-        except:
-            # Something went wrong, return df
-            nd = df
-
-        # Sort remaining candidates
-        nd = pd.DataFrame(nd).sort_values(by=2, ascending=True)
-
-    # Only 1st trial so return it
-    else:
-        nd = df
-
-    # Return "best" trial index
-    return nd.iloc[0, 0]
-
-
-def _multi_early_stopping_opt(study, trial):
-    """
-    Callback for to stop Optuna early with improvement
-    :param study: Optuna study
-    :param trial: Optuna trial
-    :return:
-    """
-
-    # Get index of this trial
-    this_trial = trial.number
-
-    # Function to find "best" trial
-    # Returns index of best trial (always 0 initially)
-    best_trial = _min_max(study)
-
-    # If this trial is best trial then
-    # store trial index and params
-    # reset early stop counter
-    if this_trial == best_trial:
-        study.top_trial = this_trial
-        study.top_params = study.trials[this_trial].params
-        study.top_value = np.mean(study.trials[this_trial].values)
-        study.early_stop_count = 0
-
-    # If best_trial (index of trials) is not the best then
-    # stop if stop_count great than user defined early_stop
-    # else increment count
-    else:
-        if study.early_stop_count > study.early_stop:
-            study.early_stop_count = 0
-            raise optuna.exceptions.OptunaError
-        else:
-            study.early_stop_count = study.early_stop_count + 1
-    return
-
-
-def _single_early_stopping_opt(study, trial):
+def _early_stopping_opt(study, trial):
     """
     Callback function to stop optuna trials early for single objective
     :param study:  Optuna study
     :param trial:  Optuna trial
     :return:
     """
+
+    # Don't early stop on trial 0, also avoids ValueError when accessing study too soon
+    if trial.number == 0:
+        return
+
+    if len([t.state for t in study.trials if t.state == TrialState.COMPLETE]) == 0:
+        return
 
     # Record first as best score
     if study.best_score is None:
@@ -196,23 +79,15 @@ def _single_early_stopping_opt(study, trial):
     return
 
 
-def _objective(self, trial, X, y, weights=None, split=None):
+def _objective(self, trial, X, y):
     """
     Objective function used in Optuna trials
     :param self:  Optuna study
     :param trial:  Optuna trial
     :param X: Entire dataset
     :param y: Target
-    :param weights: Optional weights
-    :param split: Split cut points
     :return:
     """
-
-    # Generate even weights if none
-    if weights is None:
-        weights = pd.Series(np.ones(len(y)), index=y.index)
-    else:
-        weights = pd.Series(weights, index=y.index)
 
     # Execute trial function
     try:
@@ -234,154 +109,148 @@ def _objective(self, trial, X, y, weights=None, split=None):
     # y may be a subset of X, so reduce result to y and convert to series
     res_y = res.reindex(y.index).iloc[:, 0].replace([np.inf, -np.inf], np.nan)
 
-    # Save all trial results for pruning and reporting
-    # Only the best trial will eventually be saved to limit storage requirements
-    self.res_y.append(res_y)  # Save results
-
-    # Indicator result may be all NANs based on parameter set
-    # Return FALSE and alert
-    if np.isnan(res_y).sum() / len(res_y) > .95:  # Most or all NANs
-        self.res_y_corr.append(np.zeros(len(y)))
-        if split is not None:
-            return tuple([False] * (len(split) - 1))
-        else:
-            return False
-
-    # Obtain correlation for entire dataset
-    if self.spearman:
-        corr = _weighted_spearman(np.array(y), np.array(res_y), np.array(weights))
+    # Obtain distance correlation
+    if sum(np.isnan(res_y)) >= len(res_y)*.9:
+        correlation = np.nan
     else:
-        corr = _weighted_pearson(np.array(y), np.array(res_y), np.array(weights))
+        fvi = res_y.first_valid_index()
+        y = y[y.index >= fvi]
+        res_y = res_y[res_y.index >= fvi]
+        correlation = distance_correlation(np.array(y), np.array(res_y))
 
-    # Save correlation for res_y
-    self.res_y_corr.append(corr)
+    # Save results
+    trial.set_user_attr("correlation", correlation)
+    trial.set_user_attr("res_y", res_y)
 
-    # Multi-objective optimization
-    # Obtain correlation to target for each split for Optuna to maximize
-    if split is not None:
-        mo = []
-        for i, e in enumerate(split):
-            if i == 0:
-                s = e
-                continue
-
-            # y could be a subset of X, use index of X to filter y
-            idx = X[s:e].index
-
-            # Filter y based on X split
-            y_se = np.array(y[y.index.isin(idx)]).astype('float64')
-
-            # Filter y predictions based on X split
-            res_y_se = np.array(res_y[res_y.index.isin(idx)]).astype('float64')
-
-            # Filter weights based on X split
-            weights_se = np.array(weights[weights.index.isin(idx)]).astype('float64')
-
-            if np.isnan(res_y_se).sum() / len(res_y_se) > .95:
-                return tuple([False]*(len(split)-1))
-
-            if self.spearman:
-                mo.append(_weighted_spearman(y_se, res_y_se, weights_se))
-            else:
-                mo.append(_weighted_pearson(y_se, res_y_se, weights_se))
-            s = e
-        return tuple(mo)
-
-    # Single objective optimization return corr for entire dataset
-    else:
-        return corr
+    return correlation
 
 
 class Optimize():
-    def __init__(self, function, n_trials=100, spearman=True):
+    def __init__(self, function, n_trials=100):
         self.function = function
         self.n_trials = n_trials
-        self.res_y = []
-        self.res_y_corr = []
-        self.spearman = spearman
 
-    def fit(self, X, y, weights=None, idx=0, verbose=False, early_stop=None, split=None):
+    def fit(self, X, y, idx=0, verbose=False, early_stop=None):
         """
         Optimize a technical indicator
         :param X: Historical dataset
         :param y: Target
-        :param weights: Optional weights
         :param idx: Column to maximize if TA returnes multiple
         :param verbose: Verbosity level
         :param early_stop: Number of trials to perform without improvement before stopping
-        :param split: Split points for multi-objective optimization
         :return:
         """
 
         start_time = timer()
         self.idx = idx
-        self.split = split
 
         # Display Optuna trial messages
         if not verbose:
             optuna.logging.set_verbosity(optuna.logging.ERROR)
 
-        # Single objective optimization
-        if split is None:
+        # Create optuna study maximizing correlation
+        self.study = optuna.create_study(direction='maximize', study_name=self.function)
 
-            # Create optuna study maximizing correlation
-            self.study = optuna.create_study(direction='maximize', study_name=self.function)
+        # Set required early stopping variables
+        self.study.early_stop = early_stop
+        self.study.early_stop_count = 0
+        self.study.best_score = None
 
-            # Set required early stopping variables
-            self.study.early_stop = early_stop
-            self.study.early_stop_count = 0
-            self.study.best_score = None
+        # Start optimization trial
+        try:
+            self.study.optimize(lambda trial: _objective(self, trial, X, y),
+                n_trials=self.n_trials, callbacks=[_early_stopping_opt])
 
-            # Start optimization trial
-            try:
-                self.study.optimize(lambda trial: _objective(self, trial, X, y, weights),
-                    n_trials=self.n_trials, callbacks=[_single_early_stopping_opt])
+        # Early stopping (not officially supported by Optuna)
+        except optuna.exceptions.OptunaError:
+            pass
 
-            # Early stopping (not officially supported by Optuna)
-            except optuna.exceptions.OptunaError:
-                pass
-
-            # Keep only results of best trial for prune and reporting
-            self.res_y = self.res_y[self.study.best_trial.number]
-            self.res_y.name = col_name(self.function, self.study.best_trial.params)
-            self.res_y_corr = self.res_y_corr[self.study.best_trial.number]
-
-        # Multi objective optimization
+        if len([t for t in self.study.trials if t.state == TrialState.COMPLETE]) == 0:  # Min 1 complete trial
+            return self
+        elif self.n_trials == 1:  # Indicators with no parameters
+            best_trial = 0
         else:
+            # Unique trials
+            trials = pd.DataFrame([[t.number, t.user_attrs['correlation'], t.params] for t in self.study.trials if t.state == TrialState.COMPLETE])
+            trials.columns = ['trial', 'correlation', 'params']
+            trials.set_index('trial', drop=True, inplace=True)
+            trials = trials[~trials.params.duplicated(keep='first')]
 
-            # Create study to maximize eash split
-            sampler = optuna.samplers.NSGAIISampler()
-            self.study = optuna.create_study(directions=(len(split)-1) * ['maximize'], sampler=sampler,
-                                             study_name=self.function)
+            # Scaler for cluster scoring
+            mms = MinMaxScaler()
 
-            # Early stopping variables
-            self.study.early_stop = early_stop
-            self.study.early_stop_count = 0
+            # Trial correlations
+            correlations = np.array(list(trials.correlation)).reshape(-1, 1)
 
-            # Custom best trial variables (Optuna "best" are immutable)
-            self.study.top_trial = 0
-            self.study.top_params = None
-            self.study.top_value = None
+            # Clusters of trial correlations
+            if len(correlations) <= 7:
+                num_clusters = 1
+            else:
+                max_clusters = int(min([20, len(correlations)/2]))
+                ke = KElbowVisualizer(KMeans(), k=(1, max_clusters))
+                ke.fit(correlations)
+                num_clusters = ke.elbow_value_
+                if num_clusters is None:
+                    num_clusters = int(len(correlations) * .2)
+            kmeans = KMeans(n_clusters=num_clusters).fit(correlations.reshape(-1, 1))
 
-            # Start optimization trial
-            try:
-                self.study.optimize(lambda trial: _objective(self, trial, X, y, weights, split),
-                    n_trials=self.n_trials, callbacks=[_multi_early_stopping_opt])
+            # Mean correlation per cluster, membership and score
+            cluster_mean_correlation = [np.mean(trials[(kmeans.labels_ == c)].correlation) for c in range(num_clusters)]
+            cluster_members = [(kmeans.labels_ == c).sum() for c in range(num_clusters)]
+            clusters = pd.DataFrame([cluster_mean_correlation, cluster_members]).T
+            clusters.columns = ['mean_correlation', 'members']
 
-            # Early stopping (not officially supported by Optuna)
-            except optuna.exceptions.OptunaError:
-                pass
+            # Choose best cluster
+            df = pd.DataFrame(mms.fit_transform(clusters), index=clusters.index, columns=clusters.columns)
+            clusters['score'] = df['mean_correlation'] + df['members']
+            clusters = clusters.sort_values(by='score', ascending=False)
+            cluster = clusters.score.idxmax()
 
-            # Validation checks
-            if np.mean(self.study.trials[self.study.top_trial].values) != self.study.top_value:
-                raise RuntimeError("Top trial score invalid")
-            if len(self.res_y) != len(self.study.trials) or len(self.res_y) != len(self.res_y_corr):
-                raise RuntimeError("Total results does not equal trials")
+            # Trials of best cluster
+            trials = trials[kmeans.labels_ == cluster]
 
-            # Keep only results of best trial for prune and reporting
-            self.res_y = self.res_y[self.study.top_trial]
-            self.res_y.name = col_name(self.function, self.study.trials[self.study.top_trial].params)
-            self.res_y_corr = self.res_y_corr[self.study.top_trial]
+            # Trial parameters of best cluster
+            num_params = len(self.study.best_params)
+            params = []
+            for i in range(0, num_params):
+                params.append([list(p.values())[i] for p in trials.params])
+            params = np.nan_to_num(np.array(params).T)
+
+            if len(params) <= 7:
+                num_clusters = 1
+            else:
+                # Clusters of trial parameters for best correlation cluster
+                max_clusters = int(min([20, len(params)/2]))
+                ke = KElbowVisualizer(KMeans(), k=(1, max_clusters))
+                ke.fit(params)
+                num_clusters = ke.elbow_value_
+                if num_clusters is None:
+                    num_clusters = int(len(params) * .2)
+            kmeans = KMeans(n_clusters=num_clusters).fit(params)
+
+            # Mean correlation per cluster, membership and score
+            cluster_mean_correlation = [np.mean(trials[(kmeans.labels_ == c)].correlation) for c in range(num_clusters)]
+            cluster_members = [(kmeans.labels_ == c).sum() for c in range(num_clusters)]
+            clusters = pd.DataFrame([cluster_mean_correlation, cluster_members]).T
+            clusters.columns = ['mean_correlation', 'members']
+
+            # Choose best cluster
+            df = pd.DataFrame(mms.fit_transform(clusters), index=clusters.index, columns=clusters.columns)
+            clusters['score'] = df['mean_correlation'] + df['members']
+            clusters = clusters.sort_values(by='score', ascending=False)
+            cluster = clusters.score.idxmax()
+
+            # Choose center of cluster
+            center = kmeans.cluster_centers_[cluster]
+            center_matrix = np.vstack((center, params))
+            distances = pd.DataFrame(euclidean_distances(center_matrix)[1:, :], index=trials.index)[0]
+            best_trial = distances.sort_values().index[0]
+
+            # look = trials[kmeans.labels_ == cluster]
+
+        self.study.set_user_attr("best_trial_number", best_trial)
+        self.study.set_user_attr("best_trial", self.study.trials[best_trial])
+        self.study.set_user_attr("name", col_name(self.function, self.study.trials[best_trial].params))
 
         end_time = timer()
         self.time = round(end_time - start_time, 2)
@@ -391,13 +260,10 @@ class Optimize():
     def transform(self, X):
         """
         Calculate TA indicator using fittted best trial
-        :param X: Datset
+        :param X: Dataset
         :return:
         """
 
         # Calculate and store in features, replacing any potential non-finites (not sure needed)
-        if self.split is None:
-            features = _trial(self, self.study.best_trial, X)
-        else:
-            features = _trial(self, self.study.trials[self.study.top_trial], X)
+        features = _trial(self, self.study.user_attrs['best_trial'], X)
         return features
