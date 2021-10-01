@@ -56,6 +56,7 @@ pip install -U tuneta
 * [Tune RSI Indicator](#tune-rsi-indicator)
 * [Tune Multiple Indicators](#tune-multiple-indicators)
 * [Tune and Prune all Indicators](#tune-and-prune-all-indicators)
+* [TuneTA fit usage](#tuneta-fit-usage)
 
 #### Tune RSI Indicator
 
