@@ -12,18 +12,24 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=.3, shuffle=False)
 
     # Initialize with x cores and show trial results
-    tt = TuneTA(n_jobs=4, verbose=True)
+    tt = TuneTA(n_jobs=7, verbose=True)
 
     # Optimize indicators
     tt.fit(X_train, y_train,
-        indicators=['pta.slope', 'pta.stoch', 'tta.MACD', 'tta.MOM', 'fta.SMA'],
-        ranges=[(2, 60)],
+        indicators=['all'],
+        ranges=[(2, 30)],
         trials=500,
         early_stop=100,
     )
 
     # Show time duration in seconds per indicator
     tt.fit_times()
+
+    # Show correlation of indicators to target
+    tt.report(target_corr=True, features_corr=False)
+
+    # Select features with at most x correlation between each other
+    tt.prune(max_correlation=.7)
 
     # Show correlation of indicators to target and among themselves
     tt.report(target_corr=True, features_corr=True)

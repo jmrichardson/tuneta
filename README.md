@@ -13,8 +13,8 @@ TuneTA optimizes technical indicators using [distance correlation](https://towar
 * Selects indicators with the least correlation to each other.  This is helpful for machine learning models which generally perform better with minimal feature intercorrelation.
 * Persists state to generate identical indicators on multiple datasets (train, validation, test)
 * Correlation report of target and features
-* Parallel processing
-* Supports technical indicators produced from the following packages.  See config.py for indicators supported.
+* Parallel processing for technical indicator optimization as well as correlation pruning
+* Supports technical indicators produced from the following packages:
   * [Pandas TA](https://github.com/twopirllc/pandas-ta)
   * [TA-Lib](https://github.com/mrjbq7/ta-lib)
   * [FinTA](https://github.com/peerchemist/finta)
@@ -53,11 +53,9 @@ pip install -U tuneta
 
 ### Examples
 
-Under construction...
 * [Tune RSI Indicator](#tune-rsi-indicator)
 * [Tune Multiple Indicators](#tune-multiple-indicators)
-
-
+* [Tune and Prune all Indicators](#tune-and-prune-all-indicators)
 
 #### Tune RSI Indicator
 
@@ -68,15 +66,10 @@ For simplicity, lets optimize a single indicator:
 * Maximum of 500 trials per time period to search for the best indicator parameter
 * Stop after 100 trials per time period without improvement
 
-    Note: **config.py** contains the list of indicators supported from each TA package
-    
 The following is a snippet of the complete example found in the examples directory:
 
 ```python
-# Initialize with x cores and show trial results
 tt = TuneTA(n_jobs=4, verbose=True)
-
-# Optimize indicators
 tt.fit(X_train, y_train,
     indicators=['tta.RSI'],
     ranges=[(2, 30), (31, 180)],
@@ -85,11 +78,10 @@ tt.fit(X_train, y_train,
 )
 ```
 
-Two studies are created for each time period with up to 200 trials to test different indicator length values.  The correlation values are displayed based on the trial parameter.  The best trial with its respective parameter value is saved for both time ranges. 
+Two studies are created for each time period with up to 500 trials to test different indicator length values.  The correlation values are displayed based on the trial parameter.  The best trial with its respective parameter value is saved for both time ranges. 
 
 To view the correlation of both indicators to the target return as well as each other:
 ```python
-# Show correlation of indicators
 tt.report(target_corr=True, features_corr=True)
 ```
 ```csharp
@@ -128,89 +120,153 @@ Date
 2018-10-01              63.384824              61.305540
 ```
 
-### Tune Multiple Indicators
+#### Tune Multiple Indicators
 
-Lets optimize a handful of indicators:
+Building from the previous example, lets optimize a handful of indicators:
 
-* Basket of indicators from multiple packages
-* One time periods: 2-60
-* Maximum of 200 trials per time period to search for the best indicator parameter
-* Stop after 50 trials per time period without improvement
-
-Note: config.py contains the list of indicators supported for each TA package
+* Basket of indicators from 3 different packages ([TA-Lib](https://github.com/mrjbq7/ta-lib), [Pandas-TA](https://github.com/twopirllc/pandas-ta), [FinTA](https://github.com/peerchemist/finta))
+* One time period: 2-60
 
 ```python
-    tt = TuneTA(n_jobs=2, verbose=True)
-    tt.fit(X_train, y_train, indicators=['pta.stoch', 'pta.slope', 'tta.MOM', 'fta.SMA'], ranges=[(2, 60)], trials=200, early_stop=50)
+tt.fit(X_train, y_train,
+    indicators=['pta.slope', 'pta.stoch', 'tta.MACD', 'tta.MOM', 'fta.SMA'],
+    ranges=[(2, 60)],
+    trials=500,
+    early_stop=100,
+)
 ```
 
-View each indicator's distance correlation to target:
-
+You can view how long it took to optimize each indicator:
+```python
+tt.fit_times()
+```
 ```csharp
-                                  Correlation
-------------------------------  -------------
-pta_stoch_k_51_d_11_smooth_k_4       0.216212
-tta_MOM_timeperiod_14                0.212336
-pta_slope_length_22                  0.201844
-fta_SMA_period_6                     0.099375
+    Indicator      Times
+--  -----------  -------
+ 1  pta.stoch      23.56
+ 0  tta.MACD       12.03
+ 2  pta.slope       6.82
+ 4  fta.SMA         6.42
+ 3  tta.MOM         5.7
 ```
 
+Let's have a look at each indicator's distance correlation to target as well as each other:
+```python
+    tt.report(target_corr=True, features_corr=True)
+```
+```csharp
+Indicator Correlation to Target:
+                                                       Correlation
+---------------------------------------------------  -------------
+tta_MACD_fastperiod_43_slowperiod_4_signalperiod_52       0.236575
+pta_stoch_k_57_d_29_smooth_k_2                            0.231091
+pta_slope_length_15                                       0.215603
+tta_MOM_timeperiod_15                                     0.215603
+fta_SMA_period_30                                         0.080596
+
+Indicator Correlation to Each Other:
+                                                       tta_MACD_fastperiod_43_slowperiod_4_signalperiod_52    pta_stoch_k_57_d_29_smooth_k_2    pta_slope_length_15    tta_MOM_timeperiod_15    fta_SMA_period_30
+---------------------------------------------------  -----------------------------------------------------  --------------------------------  ---------------------  -----------------------  -------------------
+tta_MACD_fastperiod_43_slowperiod_4_signalperiod_52                                               0                                 0.886265               0.779794                 0.779794             0.2209
+pta_stoch_k_57_d_29_smooth_k_2                                                                    0.886265                          0                      0.678311                 0.678311             0.110129
+pta_slope_length_15                                                                               0.779794                          0.678311               0                        1                    0.167069
+tta_MOM_timeperiod_15                                                                             0.779794                          0.678311               1                        0                    0.167069
+fta_SMA_period_30                                                                                 0.2209                            0.110129               0.167069                 0.167069             0
+
+```
 As in the previous example, we can easily create features:
 
 ```python
 features = tt.transform(X_train)
 ```
 
-```csharp
-            pta_stoch_k_51_d_11_smooth_k_4_0  pta_stoch_k_51_d_11_smooth_k_4_1  tta_MOM_timeperiod_14  pta_slope_length_22  fta_SMA_period_6
-Date                                                                                                                                        
-2011-10-03                               NaN                               NaN                    NaN                  NaN               NaN
-2011-10-04                               NaN                               NaN                    NaN                  NaN               NaN
-2011-10-05                               NaN                               NaN                    NaN                  NaN               NaN
-2011-10-06                               NaN                               NaN                    NaN                  NaN               NaN
-2011-10-07                               NaN                               NaN                    NaN                  NaN               NaN
-...                                      ...                               ...                    ...                  ...               ...
-2018-09-25                         90.393165                         91.254190               2.867035             0.269386        275.953323
-2018-09-26                         85.712117                         91.337471               2.863281             0.158049        275.997752
-2018-09-27                         83.432356                         91.128202               4.160370             0.095541        276.121440
-2018-09-28                         82.802412                         90.553986               3.716797             0.090829        275.878464
-2018-10-01                         84.230122                         89.847810               3.777649             0.067411        275.837362
-```
+#### Tune and Prune all Indicators
 
-### Tune and Prune all Ta-Lib Indicators
-
-Lets optimize all ta-lib indicators:
-
-* All ta-lib indicators
-* 3 time periods: 2-30, 31-90, 91-280
-* Maximum of 200 trials per time period to search for the best indicator parameter
-* Stop after 50 trials per time period without improvement
-* Keep best indicators with the least intercorrelation
-
-Note: config.py contains the list of indicators supported for each TA package
+Building from the previous examples, lets optimize all available indicators:
 
 ```python
-    tt = TuneTA(n_jobs=6, verbose=True)
-    tt.fit(X_train, y_train, indicators=['tta'], ranges=[(2, 30), (31, 90), (91, 280)], trials=200, early_stop=50)
+tt.fit(X_train, y_train,
+    indicators=['all'],
+    ranges=[(2, 30)],
+    trials=500,
+    early_stop=100,
+)
+```
+As in the previous examples we can see the correlation to the target with the report function:
+
+```python
+tt.report(target_corr=True, features_corr=False)
+```
+For brevity, only showing the top 10 of the many results:
+```csharp
+Indicator Correlation to Target:
+                                                                              Correlation
+--------------------------------------------------------------------------  -------------
+pta_natr_length_4_scalar_27                                                      0.253049
+tta_NATR_timeperiod_6                                                            0.247999
+tta_MACD_fastperiod_3_slowperiod_29_signalperiod_25                              0.240217
+pta_macd_fast_3_slow_29_signal_25                                                0.240217
+pta_pgo_length_26                                                                0.239584
+pta_tsi_fast_28_slow_2_signal_25_scalar_15                                       0.238303
+pta_smi_fast_29_slow_2_signal_20_scalar_26                                       0.238294
+fta_TSI_long_3_short_29_signal_26                                                0.234654
+tta_RSI_timeperiod_19                                                            0.23393
+pta_rsi_length_19_scalar_26                                                      0.23393
+...
 ```
 
-To view the correlation to the target and to each other.  For brevity, not displaying results:
+Let's prune the indicators to have a maximum of .7 correlation with any of the other indicators:
 
+```python
+tt.prune(max_correlation=.7)
+```
+Show the correlation for both target and intercorrelation after prune:
 ```python
 tt.report(target_corr=True, features_corr=True)
 ```
-
-To keep the best indicators with the least intercorrelation:
-```python
-tt.prune(top=30) 
+Again, showing only top 10 rows of each for brevity (intercorrelation omitted as well):
+```csharp
+                                                       Correlation
+---------------------------------------------------  -------------
+pta_natr_length_4_scalar_27                               0.253049
+tta_MACD_fastperiod_3_slowperiod_29_signalperiod_25       0.240217
+pta_pvol_                                                 0.199302
+pta_kc_length_3_scalar_27                                 0.193162
+fta_VZO_period_20                                         0.171986
+fta_DMI_period_4                                          0.148614
+pta_pvo_fast_27_slow_28_signal_29_scalar_15               0.14692
+pta_cfo_length_28_scalar_26                               0.141013
+fta_IFT_RSI_rsi_period_28_wma_period_4                    0.140977
+pta_stc_fast_18_slow_27                                   0.140789
+...
 ```
 
+#### TuneTA fit usage
 
-### Complete Example Code
+tt.fit(X, y, indicators, ranges, trials, early_stop)
 
-A working example is provided in example.py
+Parameters:
 
-*** Under construction...
+* indicators: List of indicators to optimize
+    * ['all']: All indicators
+    * ['pta']: All pandas-ta indicators
+    * ['tta']: All ta-lib indicators
+    * ['fta']: All fin-ta indicators
+    * ['tta.RSI']: RSI indicator from ta-lib
+    * See config.py for available indicators and the parameters that are optimized
+* ranges: Time periods to optimize
+    * [(2-30)]: Single time period (2 to 30 days)
+    * [(2-30, 31-90)]: Two time periods (short and long term)
+* trials: Number of trials to search for optimal parameters
+* early_stop: Max number of trials without improvement
+
+---
+
+
+
+
+
+
 
 
 
