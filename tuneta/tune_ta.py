@@ -35,6 +35,10 @@ class TuneTA():
         :param early_stop: Max number of optimization trials before stopping
         """
 
+        # No missing values
+        if X.isna().any().any() or y.isna().any():
+            raise ValueError("X and y cannot contain missing values")
+
         self.fitted = []  # List containing each indicator completed study
         X.columns = X.columns.str.lower()  # columns must be lower case
         pool = ProcessPool(nodes=self.n_jobs)  # Set parallel cores

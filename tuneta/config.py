@@ -13,7 +13,7 @@ tune_params = ['width', 'fast', 'slow', 'signal', 'length', 'max_lookback', 'min
                'k_period', 'timeperiod', 'timeperiod1', 'timeperiod2', 'timeperiod3', 'slowlimit', 'fastlimit',
                'minperiod', 'maxperiod', 'acceleration', 'accelerationlong', 'accelerationshort', 'signalperiod',
                'slowperiod', 'signalperiod', 'fastperiod', 'fastk_period', 'slowk_period', 'slowd_period',
-               'fastd_period']
+               'fastd_period', 'k', 'd', 'smooth_k']
 
 talib_indicators = ['tta.BBANDS', 'tta.DEMA', 'tta.EMA', 'tta.HT_TRENDLINE', 'tta.KAMA', 'tta.MA',
                         'tta.MIDPOINT', 'tta.MIDPRICE', 'tta.SAR', 'tta.SAREXT', 'tta.SMA', 'tta.T3', 'tta.TEMA',

@@ -6,5 +6,6 @@ pathos
 tabulate
 scikit-learn
 yellowbrick
-numpy>=1.21
+dcor
 yfinance
+numpy==1.20
