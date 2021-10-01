@@ -1,9 +1,9 @@
+import joblib
 import pandas as pd
 import numpy as np
 from pathos.multiprocessing import ProcessPool
 import multiprocessing
 import inspect
-from scipy.stats import rankdata
 from tuneta.config import *
 from tuneta.optimize import Optimize
 import pandas_ta as pta
@@ -11,19 +11,22 @@ from finta import TA as fta
 import talib as tta
 import re
 from tabulate import tabulate
-from tuneta.optimize import col_name
+from tuneta.utils import col_name
+from tuneta.utils import distance_correlation
 from collections import OrderedDict
+from scipy.spatial.distance import squareform
+from joblib import delayed, Parallel
+import itertools
 
 
 class TuneTA():
 
-    def __init__(self, n_jobs=multiprocessing.cpu_count() - 1, verbose=False):
+    def __init__(self, n_jobs=multiprocessing.cpu_count() - 2, verbose=False):
         self.fitted = []
         self.n_jobs = n_jobs
         self.verbose = verbose
 
-    def fit(self, X, y, trials=5, indicators=['tta'], ranges=[(3, 180)],
-        spearman=True, weights=None, early_stop=99999, split=None):
+    def fit(self, X, y, trials=5, indicators=['tta'], ranges=[(3, 180)], early_stop=99999):
         """
         Optimize indicator parameters to maximize correlation
         :param X: Historical dataset
@@ -31,11 +34,11 @@ class TuneTA():
         :param trials: Number of optimization trials per indicator set
         :param indicators: List of indicators to optimize
         :param ranges: Parameter search space
-        :param spearman: Perform spearman vs pearson correlation
-        :param weights: Optional weights sharing the same index as y
         :param early_stop: Max number of optimization trials before stopping
-        :param split: Index cut points defining time periods
         """
+        # No missing values allowed
+        if X.isna().any().any() or y.isna().any():
+            raise ValueError("X and y cannot contain missing values")
 
         self.fitted = []  # List containing each indicator completed study
         X.columns = X.columns.str.lower()  # columns must be lower case
@@ -110,72 +113,58 @@ class TuneTA():
 
                 # Only optimize indicators that contain tunable parameters
                 if suggest:
-                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials,
-                        spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
-                        weights=weights, early_stop=early_stop, split=split), )
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials).fit, X, y, idx=idx,
+                        verbose=self.verbose, early_stop=early_stop))
                 else:
-                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1,
-                        spearman=spearman).fit, X, y, idx=idx, verbose=self.verbose,
-                        weights=weights, early_stop=early_stop, split=split), )
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1).fit, X, y, idx=idx,
+                        verbose=self.verbose, early_stop=early_stop))
 
         # Blocking wait to retrieve results
         self.fitted = [fit.get() for fit in self.fitted]
 
-    def prune(self, top=2, studies=1):
+        # Fits must contain best trial data
+        self.fitted = [f for f in self.fitted if len(f.study.user_attrs) > 0]
+
+        # Remove any fits with zero correlation
+        self.fitted = [f for f in self.fitted if f.study.user_attrs['best_trial'].user_attrs['correlation'] > 0]
+
+        # Order fits by correlation (Descending)
+        self.fitted = sorted([f for f in self.fitted], key=lambda x:x.study.user_attrs['best_trial'].value, reverse=True)
+
+    def prune(self, max_correlation=.7):
         """
         Select most correlated with target, least intercorrelated
         :param top: Selects top x most correlated with target
         :param studies: From top x, keep y least intercorelated
         :return:
         """
-
-        # Error checking
-        if top > len(self.fitted) or studies > len(self.fitted):
-            raise ValueError("Cannot prune because top or studies is >= tuned indicators")
-            return
-        if top < studies:
-            raise ValueError(f"top {top} must be >= studies {studies}")
-
-        # Create fitness array that maps to the correlation of each indicator study
-        fitness = []
-        for t in self.fitted:
-            if t.split is None:
-                fitness.append(t.study.best_trial.value)
-            else:
-                fitness.append(sum(t.study.trials[t.study.top_trial].values))
-        fitness = np.array(fitness)
-
-        # Select top x indices with most correlation to target
-        fitness = fitness.argsort()[::-1][:top]  # Get sorted fitness indices of HOF
-
-        # Gets best trial feature of each study in HOF
-        features = []
-        top_studies = [self.fitted[i] for i in fitness]  # Get fitness mapped studies
-        for study in top_studies:
-            features.append(study.res_y) # Get indicator values stored from optimization
-        features = np.array(features)  # Features of HOF studies / actual indicator results
-
-        # Correlation of HOF features
-        # Create correlation table of features
-        eval = np.apply_along_axis(rankdata, 1, features)
-        with np.errstate(divide='ignore', invalid='ignore'):
-            correlations = np.abs(np.corrcoef(eval))
-        np.fill_diagonal(correlations, 0.)
+        if not hasattr(self, 'f_corr'):
+            self.features_corr()
 
         # Iteratively removes least fit individual of most correlated pairs of studies
         # IOW, finds most correlated pairs, removes lest correlated to target until x studies
-        components = list(range(top))
-        indices = list(range(top))
-        while len(components) > studies:
+        components = list(range(len(self.fitted)))
+        indices = list(range(len(self.fitted)))
+        correlations = np.array(self.f_corr)
+
+        most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
+        correlation = correlations[most_correlated[0], most_correlated[1]]
+        while correlation > max_correlation:
             most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
             worst = max(most_correlated)
             components.pop(worst)
             indices.remove(worst)
             correlations = correlations[:, indices][indices, :]
             indices = list(range(len(components)))
+            most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
+            correlation = correlations[most_correlated[0], most_correlated[1]]
 
-        # Save only fitted studies (overwriting all studies)
-        self.fitted = [self.fitted[i] for i in fitness[components]]
+        # Remove most correlated fits
+        self.fitted = [self.fitted[i] for i in components]
+
+        # Recalculate correlation of fits
+        self.target_corr()
+        self.features_corr()
 
     def transform(self, X, columns=None):
         """
@@ -183,7 +172,6 @@ class TuneTA():
         :param X: Dataset with features used to create fitted studies
         :return:
         """
-
         # Remove trailing identifier in column list if present
         if columns is not None:
             columns = [re.sub(r'_[0-9]+$', '', s) for s in columns]
@@ -205,44 +193,54 @@ class TuneTA():
         res = pd.concat(self.result, axis=1)
         return res
 
-    def report(self, target_corr=True, features_corr=True):
+
+    def target_corr(self):
         fns = []  # Function names
         cor = []  # Target Correlation
-        moc = []  # Multi-Time Period Correlation
-        mean_moc = []
-        std_moc = []  # Multi STD
+        for fit in self.fitted:
+            fns.append(col_name(fit.function, fit.study.user_attrs['best_trial'].params))
+            cor.append(np.round(fit.study.user_attrs['best_trial'].value, 6))
+
+        # Target correlation
+        self.t_corr = pd.DataFrame(cor, index=fns, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
+
+    def features_corr(self):
+        fns = []  # Function names
+        cor = []  # Target Correlation
         features = []
         for fit in self.fitted:
-            if fit.split is None:
-                fns.append(col_name(fit.function, fit.study.best_params))
-            else:
-                fns.append(col_name(fit.function, fit.study.top_params))
-                moc.append(fit.study.trials[fit.study.top_trial].values)
-                mean_moc.append(np.mean(fit.study.trials[fit.study.top_trial].values))
-                std_moc.append(np.std(fit.study.trials[fit.study.top_trial].values))
+            fns.append(col_name(fit.function, fit.study.user_attrs['best_trial'].params))
+            cor.append(np.round(fit.study.user_attrs['best_trial'].value, 6))
+            features.append(fit.study.user_attrs['best_trial'].user_attrs['res_y'])
 
-            cor.append(round(fit.res_y_corr, 6))
-            features.append(fit.res_y)
+        # Feature must be same size for correlation and of type float
+        start = max([f.first_valid_index() for f in features])
+        features = [(f[f.index >= start]).astype(float) for f in features]
 
-        if fit.split is None:
-            fitness = pd.DataFrame(cor, index=fns, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
-        else:
-            fitness = pd.DataFrame(zip(cor, mean_moc, std_moc, moc), index=fns, columns=['Correlation', 'Split Mean', 'Split STD', 'Split Correlation']).sort_values(by=['Correlation'], ascending=False)
+        # Inter Correlation
+        pair_order_list = itertools.combinations(features, 2)
+        def dc(p0, p1): return distance_correlation(p0, p1)
+        correlations = Parallel(n_jobs=self.n_jobs)(delayed(dc)(p[0], p[1]) for p in pair_order_list)  # Parallelize correlation calculation
+        # correlations = [distance_correlation(p[0], p[1]) for p in pair_order_list]
+        correlations = squareform(correlations)
+        self.f_corr = pd.DataFrame(correlations, columns=fns, index=fns)
 
+    def report(self, target_corr=True, features_corr=True):
         if target_corr:
-            print("\nTarget Correlation:\n")
-            print(tabulate(fitness, headers=fitness.columns, tablefmt="simple"))
+            if not hasattr(self, 't_corr'):
+                self.target_corr()
+            print("\nIndicator Correlation to Target:\n")
+            print(tabulate(self.t_corr, headers=self.t_corr.columns, tablefmt="simple"))
 
-        eval = np.apply_along_axis(rankdata, 1, features)
-        with np.errstate(divide='ignore', invalid='ignore'):
-            correlations = np.abs(np.corrcoef(eval))
-        correlations = pd.DataFrame(correlations, columns=fns, index=fns)
         if features_corr:
-            print("\nFeature Correlation:\n")
-            print(tabulate(correlations, headers=correlations.columns, tablefmt="simple"))
+            if not hasattr(self, 'f_corr'):
+                self.features_corr()
+            print("\nIndicator Correlation to Each Other:\n")
+            print(tabulate(self.f_corr, headers=self.f_corr.columns, tablefmt="simple"))
 
     def fit_times(self):
         times = [fit.time for fit in self.fitted]
         inds = [fit.function.split('(')[0] for fit in self.fitted]
         df = pd.DataFrame({'Indicator': inds, 'Times': times}).sort_values(by='Times', ascending=False)
         print(tabulate(df, headers=df.columns, tablefmt="simple"))
+

@@ -5,4 +5,7 @@ optuna
 pathos
 tabulate
 scikit-learn
-pareto
+yellowbrick
+dcor
+yfinance
+numpy==1.20
