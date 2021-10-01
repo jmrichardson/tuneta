@@ -20,20 +20,21 @@ if __name__ == "__main__":
         # specific packages ('tta', 'pta', 'fta') and/or specific indicator(ie, 'tta.MACD', 'pta.ema')
         # ":1" optimizes column 1 instead of default 0 if indicator returns dataframe
         # Examples: ['all'], ['tta', 'fta'], ['pta', 'tta.MACD', 'tta.ARRON:1']
-        indicators=['tta.RSI', 'tta.MACD', 'tta.EMA', 'tta.MA', 'tta.SAR', 'tta.STOCHF'],
-        ranges=[(2, 30), (31, 90)],  # Period range(s) to tune indicator (short and long term)
-        trials=500,  # Trials per indicator range
-        early_stop=50,  # Stop after x number of trials without improvement
+        # indicators=['tta.RSI', 'tta.MACD', 'tta.EMA', 'tta.MA', 'tta.SAR', 'tta.STOCHF'],
+        indicators=['tta'],
+        ranges=[(2, 30)],  # Period range(s) to tune indicator (short and long term)
+        trials=10,  # Trials per indicator range
+        early_stop=5,  # Stop after x number of trials without improvement
     )
 
     # Show time duration in seconds per indicator
     tt.fit_times()
 
     # Show correlation of indicators to target
-    tt.report(target_corr=True, features_corr=False)
+    tt.report(target_corr=True, features_corr=True)
 
-    # Select top x tuned indicators with least intercorrelation
-    tt.prune(top=3)  # Be patient, time consuming for many indicators
+    # Select features with at most x correlation between each other
+    tt.prune(max_correlation=.7)
 
     # Show correlation of indicators to target and among themselves
     tt.report(target_corr=True, features_corr=True)

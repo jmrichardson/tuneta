@@ -1,3 +1,4 @@
+import joblib
 import pandas as pd
 import numpy as np
 from pathos.multiprocessing import ProcessPool
@@ -14,12 +15,13 @@ from tuneta.utils import col_name
 from tuneta.utils import distance_correlation
 from collections import OrderedDict
 from scipy.spatial.distance import squareform
+from joblib import delayed, Parallel
 import itertools
 
 
 class TuneTA():
 
-    def __init__(self, n_jobs=multiprocessing.cpu_count() - 1, verbose=False):
+    def __init__(self, n_jobs=multiprocessing.cpu_count() - 2, verbose=False):
         self.fitted = []
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -34,8 +36,7 @@ class TuneTA():
         :param ranges: Parameter search space
         :param early_stop: Max number of optimization trials before stopping
         """
-
-        # No missing values
+        # No missing values allowed
         if X.isna().any().any() or y.isna().any():
             raise ValueError("X and y cannot contain missing values")
 
@@ -124,20 +125,19 @@ class TuneTA():
         # Fits must contain best trial data
         self.fitted = [f for f in self.fitted if len(f.study.user_attrs) > 0]
 
+        # Remove any fits with zero correlation
+        self.fitted = [f for f in self.fitted if f.study.user_attrs['best_trial'].user_attrs['correlation'] > 0]
+
         # Order fits by correlation (Descending)
         self.fitted = sorted([f for f in self.fitted], key=lambda x:x.study.user_attrs['best_trial'].value, reverse=True)
 
-    def prune(self, top=2):
+    def prune(self, max_correlation=.7):
         """
         Select most correlated with target, least intercorrelated
         :param top: Selects top x most correlated with target
         :param studies: From top x, keep y least intercorelated
         :return:
         """
-        # Error checking
-        if top > len(self.fitted):
-            raise ValueError("Cannot prune: top must be <= tuned indicators")
-
         if not hasattr(self, 'f_corr'):
             self.features_corr()
 
@@ -146,13 +146,18 @@ class TuneTA():
         components = list(range(len(self.fitted)))
         indices = list(range(len(self.fitted)))
         correlations = np.array(self.f_corr)
-        while len(components) > top:
+
+        most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
+        correlation = correlations[most_correlated[0], most_correlated[1]]
+        while correlation > max_correlation:
             most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
             worst = max(most_correlated)
             components.pop(worst)
             indices.remove(worst)
             correlations = correlations[:, indices][indices, :]
             indices = list(range(len(components)))
+            most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
+            correlation = correlations[most_correlated[0], most_correlated[1]]
 
         # Remove most correlated fits
         self.fitted = [self.fitted[i] for i in components]
@@ -188,6 +193,7 @@ class TuneTA():
         res = pd.concat(self.result, axis=1)
         return res
 
+
     def target_corr(self):
         fns = []  # Function names
         cor = []  # Target Correlation
@@ -207,13 +213,15 @@ class TuneTA():
             cor.append(np.round(fit.study.user_attrs['best_trial'].value, 6))
             features.append(fit.study.user_attrs['best_trial'].user_attrs['res_y'])
 
-        # Feature must be same size for correlation
+        # Feature must be same size for correlation and of type float
         start = max([f.first_valid_index() for f in features])
-        features = [f[f.index >= start] for f in features]
+        features = [(f[f.index >= start]).astype(float) for f in features]
 
         # Inter Correlation
         pair_order_list = itertools.combinations(features, 2)
-        correlations = [distance_correlation(p[0], p[1]) for p in pair_order_list]
+        def dc(p0, p1): return distance_correlation(p0, p1)
+        correlations = Parallel(n_jobs=self.n_jobs)(delayed(dc)(p[0], p[1]) for p in pair_order_list)  # Parallelize correlation calculation
+        # correlations = [distance_correlation(p[0], p[1]) for p in pair_order_list]
         correlations = squareform(correlations)
         self.f_corr = pd.DataFrame(correlations, columns=fns, index=fns)
 
