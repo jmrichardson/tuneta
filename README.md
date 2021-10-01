@@ -4,12 +4,12 @@
   </a>
 </p>
 
-TuneTA optimizes technical indicators using [distance correlation](https://towardsdatascience.com/introducing-distance-correlation-a-superior-correlation-metric-d569dc8900c7) to a user defined target variable.  Indicator parameter(s) are selected using clustering techniques to avoid "peak" or "lucky" values.  The set of tuned indicators can further be reduced by choosing the most correlated with the target while minimizing correlation with each other. TuneTA maintains its state to add all tuned indicators to multiple data sets (train, validation, test).
+TuneTA optimizes technical indicators using [distance correlation](https://towardsdatascience.com/introducing-distance-correlation-a-superior-correlation-metric-d569dc8900c7) to a user defined target feature.  Indicator parameter(s) are selected using clustering techniques to avoid "peak" or "lucky" values.  The set of tuned indicators can further be reduced by choosing the most correlated with the target while minimizing correlation with each other. TuneTA maintains its state to add all tuned indicators to multiple data sets (train, validation, test).
 
 ### Features
 
-* Given financial prices (OHLCV) and a target variable such as return, TuneTA optimizes the parameter(s) of each technical indicator using distance correlation to the target variable. Distance correlation captures both linear and non-linear strength.
-* Optimal indicator parameters are selected in a multi-step clustering process to avoid values which are not consistent with neighboring values providing a more robust selection.
+* Given financial prices (OHLCV) and a target feature such as return, TuneTA optimizes the parameter(s) of each technical indicator using distance correlation to the target feature. Distance correlation captures both linear and non-linear strength and provides significant benefit over the popular Pearson correlation.
+* Optimal indicator parameters are selected in a multi-step clustering process to avoid values which are not consistent with neighboring values which provides a more robust parameter selection.
 * Selects indicators with the least correlation to each other.  This is helpful for machine learning models which generally perform better with minimal feature intercorrelation.
 * Persists state to generate identical indicators on multiple datasets (train, validation, test)
 * Correlation report of target and features
