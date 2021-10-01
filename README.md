@@ -4,25 +4,25 @@
   </a>
 </p>
 
-TuneTA optimizes technical indicators using [distance correlation](https://towardsdatascience.com/introducing-distance-correlation-a-superior-correlation-metric-d569dc8900c7) to a user defined target variable.  Indicator parameter(s) are selected using KMeans clustering to avoid "peak" or "lucky" values.  The set of tuned indicators can further be reduced by choosing the most correlated with the target while minimizing correlation with each other. TuneTA maintains its state to add all tuned indicators to multiple data sets (train, validation, test).
+TuneTA optimizes technical indicators using [distance correlation](https://towardsdatascience.com/introducing-distance-correlation-a-superior-correlation-metric-d569dc8900c7) to a user defined target variable.  Indicator parameter(s) are selected using clustering techniques to avoid "peak" or "lucky" values.  The set of tuned indicators can further be reduced by choosing the most correlated with the target while minimizing correlation with each other. TuneTA maintains its state to add all tuned indicators to multiple data sets (train, validation, test).
 
 ### Features
 
-* Given financial prices (OHLCV) and a target variable such as return, TuneTa optimizes the parameter(s) of each technical indicator using distance correlation to the target variable. Distance correlation captures linear and non-linear strength versus the widely used Pearson correlation.
-* Optimal indicator parameters are selected in a multi-step clustering process to avoid values which are not consistent with neighboring values providing a more robust selection than many other optimization frameworks.
-* Selects top X indicators with the least correlation to each other.  This is helpful for machine learning models which generally perform better with minimal feature intercorrelation.
-* Persist state to generate identical indicators on multiple datasets (train, validation, test)
-* Early stopping
+* Given financial prices (OHLCV) and a target variable such as return, TuneTA optimizes the parameter(s) of each technical indicator using distance correlation to the target variable. Distance correlation captures both linear and non-linear strength.
+* Optimal indicator parameters are selected in a multi-step clustering process to avoid values which are not consistent with neighboring values providing a more robust selection.
+* Selects indicators with the least correlation to each other.  This is helpful for machine learning models which generally perform better with minimal feature intercorrelation.
+* Persists state to generate identical indicators on multiple datasets (train, validation, test)
 * Correlation report of target and features
 * Parallel processing
 * Supports technical indicators produced from the following packages.  See config.py for indicators supported.
   * [Pandas TA](https://github.com/twopirllc/pandas-ta)
   * [TA-Lib](https://github.com/mrjbq7/ta-lib)
   * [FinTA](https://github.com/peerchemist/finta)
+* Early stopping
 
 ### Overview
 
-TuneTA simplifies the process of optimizing technical indicators while avoiding "peak" values, and selecting the best with minimal correlation between each other (optional). At a high level, TuneTA performs the following steps:
+TuneTA simplifies the process of optimizing many technical indicators while avoiding "peak" values, and selecting the best with minimal correlation between each other (optional). At a high level, TuneTA performs the following steps:
 
 1.  For each indicator, [Optuna](https://optuna.org) searches for the parameter(s) which maximize its correlation to the user defined target (for example, next day return).
 2.  After the specified Optuna trials are complete, a 3-step KMeans clustering method is used to select the optimal parameter(s):
@@ -31,8 +31,9 @@ TuneTA simplifies the process of optimizing technical indicators while avoiding 
     2. After the best correlation cluster is selected, the parameters of the trials within the cluster are also clustered. Again, the best cluster of indicator parameter(s) are selected with respect to its membership.
     3. Finally, the centered best trial is selected from the best parameter cluster.
     
-3.  Optionally, the tuned parameters can be reduced by selecting the top x indicators with the least intercorrelation.
-4.  Finally, TuneTA will generate each indicator with the best parameters.
+3.  Optionally, the tuned indicators can be pruned by selecting the indicators with a maximum correlation to the other indicators.
+4.  Finally, TuneTA generates each indicator feature with the best parameters.
+---
 
 ### Installation
 
@@ -48,36 +49,71 @@ Install the latest release:
 pip install -U tuneta
 ```
 
-### Complete Example Code
+---
 
-A working example is provided in example.py
+### Examples
 
-### Tune RSI Indicator
+Under construction...
+* [Tune RSI Indicator](#tune-rsi-indicator)
+* [Tune Multiple Indicators](#tune-multiple-indicators)
+
+
+
+#### Tune RSI Indicator
 
 For simplicity, lets optimize a single indicator:
 
-* Indicator RSI
-* Two time periods: 2-60 and 61-180
-* Maximum of 200 trials per time period to search for the best indicator parameter
-* Stop after 50 trials per time period without improvement
+* RSI Indicator
+* Two time periods (short and long term): 2-30 and 31-180
+* Maximum of 500 trials per time period to search for the best indicator parameter
+* Stop after 100 trials per time period without improvement
 
-Note: config.py contains the list of indicators supported for each TA package
-
+    Note: **config.py** contains the list of indicators supported from each TA package
+    
+The following is a snippet of the complete example found in the examples directory:
 
 ```python
-tt = TuneTA(n_jobs=2, verbose=True)
-tt.fit(X_train, y_train, indicators=['tta.RSI'],  ranges=[(2, 60), (61, 180)],  trials=200,  early_stop=50)
+# Initialize with x cores and show trial results
+tt = TuneTA(n_jobs=4, verbose=True)
+
+# Optimize indicators
+tt.fit(X_train, y_train,
+    indicators=['tta.RSI'],
+    ranges=[(2, 30), (31, 180)],
+    trials=500,
+    early_stop=100,
+)
 ```
 
-Two studies (Optuna vernacular) are created with up to 200 trials to test different indicator length values for each time period.  The correlation values are presented based on each parameter setting.  The best trial with its respective parameter value is saved for both time ranges. 
+Two studies are created for each time period with up to 200 trials to test different indicator length values.  The correlation values are displayed based on the trial parameter.  The best trial with its respective parameter value is saved for both time ranges. 
 
-To generate the RSI indicator for both time ranges:
+To view the correlation of both indicators to the target return as well as each other:
+```python
+# Show correlation of indicators
+tt.report(target_corr=True, features_corr=True)
+```
+```csharp
+Indicator Correlation to Target:
+
+                         Correlation
+---------------------  -------------
+tta_RSI_timeperiod_19       0.23393
+tta_RSI_timeperiod_36       0.227434
+
+Indicator Correlation to Each Other:
+
+                         tta_RSI_timeperiod_19    tta_RSI_timeperiod_36
+---------------------  -----------------------  -----------------------
+tta_RSI_timeperiod_19                  0                        0.93175
+tta_RSI_timeperiod_36                  0.93175                  0
+```
+To generate both RSI indicators on a data set:
 ```python
 features = tt.transform(X_train)
 ```
 
 ```csharp
-            tta_RSI_timeperiod_25  tta_RSI_timeperiod_81
+            tta_RSI_timeperiod_19  tta_RSI_timeperiod_36
 Date                                                    
 2011-10-03                    NaN                    NaN
 2011-10-04                    NaN                    NaN
@@ -85,11 +121,11 @@ Date
 2011-10-06                    NaN                    NaN
 2011-10-07                    NaN                    NaN
 ...                           ...                    ...
-2018-09-25              61.834462              57.783751
-2018-09-26              59.683190              57.298651
-2018-09-27              60.999219              57.633954
-2018-09-28              61.048298              57.646431
-2018-10-01              62.693741              58.067180
+2018-09-25              62.173261              60.713051
+2018-09-26              59.185666              59.362731
+2018-09-27              61.026238              60.210235
+2018-09-28              61.094793              60.241806
+2018-10-01              63.384824              61.305540
 ```
 
 ### Tune Multiple Indicators
@@ -168,6 +204,11 @@ To keep the best indicators with the least intercorrelation:
 ```python
 tt.prune(top=30) 
 ```
+
+
+### Complete Example Code
+
+A working example is provided in example.py
 
 *** Under construction...
 

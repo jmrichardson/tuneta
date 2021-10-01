@@ -2,7 +2,7 @@ from tuneta.tune_ta import TuneTA
 import pandas as pd
 from pandas_ta import percent_return
 from sklearn.model_selection import train_test_split
-import yfinance as yf  # pip install yfinance to run this example
+import yfinance as yf
 
 
 if __name__ == "__main__":
@@ -16,22 +16,17 @@ if __name__ == "__main__":
 
     # Optimize indicators
     tt.fit(X_train, y_train,
-        # List of indicators to optimize.  You can speficy all packages ('all'),
-        # specific packages ('tta', 'pta', 'fta') and/or specific indicator(ie, 'tta.MACD', 'pta.ema')
-        # ":1" optimizes column 1 instead of default 0 if indicator returns dataframe
-        # Examples: ['all'], ['tta', 'fta'], ['pta', 'tta.MACD', 'tta.ARRON:1']
-        # indicators=['tta.RSI', 'tta.MACD', 'tta.EMA', 'tta.MA', 'tta.SAR', 'tta.STOCHF'],
-        indicators=['tta'],
-        ranges=[(2, 30)],  # Period range(s) to tune indicator (short and long term)
-        trials=10,  # Trials per indicator range
-        early_stop=5,  # Stop after x number of trials without improvement
+        indicators=['tta.RSI'],
+        ranges=[(2, 30), (31, 180)],
+        trials=500,
+        early_stop=100,
     )
 
     # Show time duration in seconds per indicator
     tt.fit_times()
 
     # Show correlation of indicators to target
-    tt.report(target_corr=True, features_corr=True)
+    tt.report(target_corr=True, features_corr=False)
 
     # Select features with at most x correlation between each other
     tt.prune(max_correlation=.7)

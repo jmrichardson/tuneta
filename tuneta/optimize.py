@@ -149,7 +149,8 @@ class Optimize():
             optuna.logging.set_verbosity(optuna.logging.ERROR)
 
         # Create optuna study maximizing correlation
-        self.study = optuna.create_study(direction='maximize', study_name=self.function)
+        sampler = optuna.samplers.TPESampler(seed=123)
+        self.study = optuna.create_study(direction='maximize', study_name=self.function, sampler=sampler)
 
         # Set required early stopping variables
         self.study.early_stop = early_stop
@@ -187,12 +188,12 @@ class Optimize():
                 num_clusters = 1
             else:
                 max_clusters = int(min([20, len(correlations)/2]))
-                ke = KElbowVisualizer(KMeans(), k=(1, max_clusters))
+                ke = KElbowVisualizer(KMeans(random_state=123), k=(1, max_clusters))
                 ke.fit(correlations)
                 num_clusters = ke.elbow_value_
                 if num_clusters is None:
                     num_clusters = int(len(correlations) * .2)
-            kmeans = KMeans(n_clusters=num_clusters).fit(correlations.reshape(-1, 1))
+            kmeans = KMeans(n_clusters=num_clusters, random_state=123).fit(correlations.reshape(-1, 1))
 
             # Mean correlation per cluster, membership and score
             cluster_mean_correlation = [np.mean(trials[(kmeans.labels_ == c)].correlation) for c in range(num_clusters)]
@@ -221,12 +222,12 @@ class Optimize():
             else:
                 # Clusters of trial parameters for best correlation cluster
                 max_clusters = int(min([20, len(params)/2]))
-                ke = KElbowVisualizer(KMeans(), k=(1, max_clusters))
+                ke = KElbowVisualizer(KMeans(random_state=123), k=(1, max_clusters))
                 ke.fit(params)
                 num_clusters = ke.elbow_value_
                 if num_clusters is None:
                     num_clusters = int(len(params) * .2)
-            kmeans = KMeans(n_clusters=num_clusters).fit(params)
+            kmeans = KMeans(n_clusters=num_clusters, random_state=123).fit(params)
 
             # Mean correlation per cluster, membership and score
             cluster_mean_correlation = [np.mean(trials[(kmeans.labels_ == c)].correlation) for c in range(num_clusters)]
