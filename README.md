@@ -58,7 +58,7 @@ pip install -U tuneta
 * [Tune and Prune all Indicators](#tune-and-prune-all-indicators)
 * [TuneTA fit usage](#tuneta-fit-usage)
 
-#### Tune RSI Indicator
+### Tune RSI Indicator
 
 For simplicity, lets optimize a single indicator:
 
@@ -121,7 +121,7 @@ Date
 2018-10-01              63.384824              61.305540
 ```
 
-#### Tune Multiple Indicators
+### Tune Multiple Indicators
 
 Building from the previous example, lets optimize a handful of indicators:
 
@@ -181,7 +181,7 @@ As in the previous example, we can easily create features:
 features = tt.transform(X_train)
 ```
 
-#### Tune and Prune all Indicators
+### Tune and Prune all Indicators
 
 Building from the previous examples, lets optimize all available indicators:
 
@@ -242,7 +242,7 @@ pta_stc_fast_18_slow_27                                   0.140789
 ...
 ```
 
-#### TuneTA fit usage
+### TuneTA fit usage
 
 tt.fit(X, y, indicators, ranges, trials, early_stop)
 
