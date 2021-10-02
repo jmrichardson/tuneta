@@ -28,6 +28,12 @@ if __name__ == "__main__":
     # Show correlation of indicators to target and among themselves
     tt.report(target_corr=True, features_corr=True)
 
+    # Select features with at most x correlation between each other
+    tt.prune(max_correlation=.85)
+
+    # Show correlation of indicators to target and among themselves
+    tt.report(target_corr=True, features_corr=True)
+
     # Add indicators to X_train
     features = tt.transform(X_train)
     X_train = pd.concat([X_train, features], axis=1)

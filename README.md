@@ -4,7 +4,7 @@
   </a>
 </p>
 
-TuneTA optimizes technical indicators using [distance correlation](https://towardsdatascience.com/introducing-distance-correlation-a-superior-correlation-metric-d569dc8900c7) to a user defined target feature.  Indicator parameter(s) are selected using clustering techniques to avoid "peak" or "lucky" values.  The set of tuned indicators can further be reduced by choosing the most correlated with the target while minimizing correlation with each other. TuneTA maintains its state to add all tuned indicators to multiple data sets (train, validation, test).
+[TuneTA](https://github.com/jmrichardson/tuneta) optimizes technical indicators using [distance correlation](https://towardsdatascience.com/introducing-distance-correlation-a-superior-correlation-metric-d569dc8900c7) to a user defined target feature such as next day return.  Indicator parameter(s) are selected using clustering techniques to avoid "peak" or "lucky" values.  The set of tuned indicators can further be reduced by choosing the most correlated with the target while minimizing correlation with each other (based on user defined maximum correlation). TuneTA maintains its state to add all tuned indicators to multiple data sets (train, validation, test).
 
 ### Features
 
@@ -175,6 +175,33 @@ tta_MOM_timeperiod_15                                                           
 fta_SMA_period_30                                                                                 0.2209                            0.110129               0.167069                 0.167069             0
 
 ```
+
+Notice both slope(15) and mom(15) are perfectly correlated in the intercorrelation report (indicated by value of 1) as well as having the same correlation to the target.  Initially, I thought this had to be a bug, but they are indeed perfectly correlated just on a different scale (notice the same heat color coding):
+
+![](images/slope_mom.jpg)
+
+Lets remove correlated indicators with a maximum threshold of .85 for demonstration purposes. Based on the above correlation report, the two indicator pairs that have a correlation of greater than .85 are MACD/Stoch and Slope/Mom.  We can easily remove the worst correlated to the target of each pair (removes Stoch as MACD is more correlated to the target and either slope or mom can be removed as they are both identically correlated to the target):
+
+```python
+tt.prune(max_correlation=.85)
+```
+```csharp
+Indicator Correlation to Target:
+                                                       Correlation
+---------------------------------------------------  -------------
+tta_MACD_fastperiod_43_slowperiod_4_signalperiod_52       0.236576
+pta_slope_length_15                                       0.215603
+fta_SMA_period_6                                          0.099375
+Indicator Correlation to Each Other:
+                                                       tta_MACD_fastperiod_43_slowperiod_4_signalperiod_52    pta_slope_length_15    fta_SMA_period_6
+---------------------------------------------------  -----------------------------------------------------  ---------------------  ------------------
+tta_MACD_fastperiod_43_slowperiod_4_signalperiod_52                                               0                      0.779794            0.252834
+pta_slope_length_15                                                                               0.779794               0                   0.188658
+fta_SMA_period_6                                                                                  0.252834               0.188658            0
+Backend TkAgg is interactive backend. Turning interactive mode on.
+
+```
+
 As in the previous example, we can easily create features:
 
 ```python
