@@ -9,20 +9,20 @@
 ### Features
 
 * Given financial prices (OHLCV) and a target feature such as return, TuneTA optimizes the parameter(s) of each technical indicator using distance correlation to the target feature. Distance correlation captures both linear and non-linear strength and provides significant benefit over the popular Pearson correlation.
-* Optimal indicator parameters are selected in a multi-step clustering process to avoid values which are not consistent with neighboring values which provides a more robust parameter selection.
+* Optimal indicator parameters are selected in a multi-step clustering process to avoid values which are not consistent with neighboring values providing a more robust parameter selection.
 * Selects indicators with the least correlation to each other.  This is helpful for machine learning models which generally perform better with minimal feature intercorrelation.
 * Persists state to generate identical indicators on multiple datasets (train, validation, test)
-* Correlation report of target and features
 * Parallel processing for technical indicator optimization as well as correlation pruning
 * Supports technical indicators produced from the following packages:
   * [Pandas TA](https://github.com/twopirllc/pandas-ta)
   * [TA-Lib](https://github.com/mrjbq7/ta-lib)
   * [FinTA](https://github.com/peerchemist/finta)
+* Correlation report of target and features
 * Early stopping
 
 ### Overview
 
-TuneTA simplifies the process of optimizing many technical indicators while avoiding "peak" values, and selecting the best with minimal correlation between each other (optional). At a high level, TuneTA performs the following steps:
+TuneTA simplifies the process of optimizing many technical indicators while avoiding "peak" values, and selecting the best indicators with minimal correlation between each other (optional). At a high level, TuneTA performs the following steps:
 
 1.  For each indicator, [Optuna](https://optuna.org) searches for the parameter(s) which maximize its correlation to the user defined target (for example, next day return).
 2.  After the specified Optuna trials are complete, a 3-step KMeans clustering method is used to select the optimal parameter(s):
@@ -176,11 +176,11 @@ fta_SMA_period_30                                                               
 
 ```
 
-Notice above that both slope(15) and mom(15) are perfectly correlated in the intercorrelation report (indicated by value of 1) as well as having the same correlation to the target.  Initially, I thought this had to be a bug, but they are indeed perfectly correlated just on a different scale (notice the same heat color coding):
+Notice above that both slope(15) and mom(15) are perfectly correlated in the intercorrelation report (indicated by value of 1) as well as having the same correlation to the target.  Initially, I thought this had to be a bug, but they are indeed identically correlated on a different scale (notice the same heat color coding):
 
 ![](images/slope_mom.jpg)
 
-Lets remove correlated indicators with a maximum threshold of .85 for demonstration purposes. Based on the above correlation report, the two indicator pairs that have a correlation of greater than .85 are MACD/Stoch and Slope/Mom.  We can easily remove the worst correlated to the target of each pair (removes Stoch as MACD is more correlated to the target and either slope or mom can be removed as they are both identically correlated to the target).  Notice that all indicators have intercorrelation less than .85:
+Lets remove correlated indicators with a maximum threshold of .85 for demonstration purposes. Based on the above correlation report, the two indicator pairs that have a correlation of greater than .85 are MACD/Stoch and Slope/Mom.  We can easily remove the worst correlated to the target of each pair (removes Stoch as MACD is more correlated to the target and either slope or mom can be removed as they are both identically correlated to the target).  Notice that all indicators now have an intercorrelation less than .85:
 
 ```python
 tt.prune(max_correlation=.85)
