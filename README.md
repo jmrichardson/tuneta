@@ -176,11 +176,11 @@ fta_SMA_period_30                                                               
 
 ```
 
-Notice both slope(15) and mom(15) are perfectly correlated in the intercorrelation report (indicated by value of 1) as well as having the same correlation to the target.  Initially, I thought this had to be a bug, but they are indeed perfectly correlated just on a different scale (notice the same heat color coding):
+Notice above that both slope(15) and mom(15) are perfectly correlated in the intercorrelation report (indicated by value of 1) as well as having the same correlation to the target.  Initially, I thought this had to be a bug, but they are indeed perfectly correlated just on a different scale (notice the same heat color coding):
 
 ![](images/slope_mom.jpg)
 
-Lets remove correlated indicators with a maximum threshold of .85 for demonstration purposes. Based on the above correlation report, the two indicator pairs that have a correlation of greater than .85 are MACD/Stoch and Slope/Mom.  We can easily remove the worst correlated to the target of each pair (removes Stoch as MACD is more correlated to the target and either slope or mom can be removed as they are both identically correlated to the target):
+Lets remove correlated indicators with a maximum threshold of .85 for demonstration purposes. Based on the above correlation report, the two indicator pairs that have a correlation of greater than .85 are MACD/Stoch and Slope/Mom.  We can easily remove the worst correlated to the target of each pair (removes Stoch as MACD is more correlated to the target and either slope or mom can be removed as they are both identically correlated to the target).  Notice that all indicators have intercorrelation less than .85:
 
 ```python
 tt.prune(max_correlation=.85)
