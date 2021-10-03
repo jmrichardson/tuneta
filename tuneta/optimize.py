@@ -12,6 +12,7 @@ from timeit import default_timer as timer
 from tuneta.utils import col_name
 from tuneta.utils import distance_correlation
 from yellowbrick.cluster import KElbowVisualizer
+import json
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -215,7 +216,7 @@ class Optimize():
             num_params = len(self.study.best_params)
             params = []
             for i in range(0, num_params):
-                params.append([p[i] for p in trials.params])
+                params.append([list(p.values())[i] for p in trials.params])
             params = np.nan_to_num(np.array(params).T)
 
             if len(params) <= 7:
