@@ -12,6 +12,7 @@ from timeit import default_timer as timer
 from tuneta.utils import col_name
 from tuneta.utils import distance_correlation
 from yellowbrick.cluster import KElbowVisualizer
+import json
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -172,10 +173,11 @@ class Optimize():
             best_trial = 0
         else:
             # Unique trials
-            trials = pd.DataFrame([[t.number, t.user_attrs['correlation'], t.params] for t in self.study.trials if t.state == TrialState.COMPLETE])
-            trials.columns = ['trial', 'correlation', 'params']
+            trials = pd.DataFrame([[t.number, t.user_attrs['correlation'], t.params, json.dumps(t.params)] for t in self.study.trials if t.state == TrialState.COMPLETE])
+            trials.columns = ['trial', 'correlation', 'params', 'json']
             trials.set_index('trial', drop=True, inplace=True)
-            trials = trials[~trials.params.duplicated(keep='first')]
+            trials = trials[~trials.json.duplicated(keep='first')]
+            trials.drop(columns=['json'])
 
             # Scaler for cluster scoring
             mms = MinMaxScaler()
