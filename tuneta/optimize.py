@@ -171,11 +171,12 @@ class Optimize():
         elif self.n_trials == 1:  # Indicators with no parameters
             best_trial = 0
         else:
-            # Unique trials
-            trials = pd.DataFrame([[t.number, t.user_attrs['correlation'], pd.Series(t.params)] for t in self.study.trials if t.state == TrialState.COMPLETE])
-            trials.columns = ['trial', 'correlation', 'params']
+            # Unique trials (converts params to json for duplicate comparison)
+            trials = pd.DataFrame([[t.number, t.user_attrs['correlation'], t.params, json.dumps(t.params)] for t in self.study.trials if t.state == TrialState.COMPLETE])
+            trials.columns = ['trial', 'correlation', 'params', 'json']
             trials.set_index('trial', drop=True, inplace=True)
-            trials = trials[~trials.params.duplicated(keep='first')]
+            trials = trials[~trials.json.duplicated(keep='first')]
+            trials = trials.drop(columns=['json'])
 
             # Scaler for cluster scoring
             mms = MinMaxScaler()
