@@ -177,7 +177,7 @@ class Optimize():
             trials.columns = ['trial', 'correlation', 'params', 'json']
             trials.set_index('trial', drop=True, inplace=True)
             trials = trials[~trials.json.duplicated(keep='first')]
-            trials.drop(columns=['json'])
+            trials = trials.drop(columns=['json'])
 
             # Scaler for cluster scoring
             mms = MinMaxScaler()
