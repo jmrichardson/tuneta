@@ -12,9 +12,20 @@ from timeit import default_timer as timer
 from tuneta.utils import col_name
 from tuneta.utils import distance_correlation
 from yellowbrick.cluster import KElbowVisualizer
+from joblib import delayed, Parallel
 import json
 import warnings
 warnings.filterwarnings("ignore")
+
+
+# Apply trial on multi index
+def trial_results(X, function, trial):
+    res = eval(function)  # Eval contains reference to best trial (in argument) to re-use original parameters
+    if isinstance(res, tuple):
+        res = pd.DataFrame(res).T
+    res = pd.DataFrame(res, index=X.index)  # Ensure result aligns with X
+    return res
+
 
 def _trial(self, trial, X):
     """
@@ -24,16 +35,11 @@ def _trial(self, trial, X):
     :param X:  dataset
     :return:
     """
-
-    # Evaluate TA defined as optuna trial string
-    res = eval(self.function)
-
-    # If return is tuple, convert to DF
-    if isinstance(res, tuple):
-        res = pd.DataFrame(res).T
-
-    # Index result with X index
-    res = pd.DataFrame(res, index=X.index)
+    if X.index.nlevels == 2:  # support 2 level inddex (data/symbol)
+        res = [trial_results(X, self.function, trial) for _, X in X.groupby(level=1)]
+        res = pd.concat(res, axis=0).sort_index()
+    else:
+        res = trial_results(X, self.function, trial)
 
     # Create consistent column names with function string and params
     name = col_name(self.function, trial.params)
@@ -80,6 +86,17 @@ def _early_stopping_opt(study, trial):
     return
 
 
+# Apply best trial parameters on multi-index dataframe
+def multi_obj_res(X, function, idx, trial):
+    res = eval(function)
+    if isinstance(res, tuple):
+        res = res[idx]
+    res = pd.DataFrame(res, index=X.index)
+    if len(res.columns) > 1:
+        res = pd.DataFrame(res.iloc[:, idx])
+    return res
+
+
 def _objective(self, trial, X, y):
     """
     Objective function used in Optuna trials
@@ -92,32 +109,29 @@ def _objective(self, trial, X, y):
 
     # Execute trial function
     try:
-        res = eval(self.function)
+        if X.index.nlevels == 2:
+            res = [multi_obj_res(X, self.function, self.idx, trial) for _, X in X.groupby(level=1)]
+            res = pd.concat(res, axis=0).sort_index()
+        else:
+            res = multi_obj_res(X, self.function, self.idx, trial)
     except:
         raise RuntimeError(f"Optuna execution error: {self.function}")
-
-    # If indicator result is tuple, select the one of interest
-    if isinstance(res, tuple):
-        res = res[self.idx]
-
-    # Ensure result is a dataframe with same index as X
-    res = pd.DataFrame(res, index=X.index)
-
-    # If indicator result is dataframe, select the one of interest
-    if len(res.columns) > 1:
-        res = pd.DataFrame(res.iloc[:, self.idx])
 
     # y may be a subset of X, so reduce result to y and convert to series
     res_y = res.reindex(y.index).iloc[:, 0].replace([np.inf, -np.inf], np.nan)
 
     # Obtain distance correlation
-    if sum(np.isnan(res_y)) >= len(res_y)*.9:
+    if sum(np.isnan(res_y)) >= len(res_y)*.9:  # If mostly nans in result, return nan correlation
         correlation = np.nan
     else:
-        fvi = res_y.first_valid_index()
-        y = y[y.index >= fvi]
-        res_y = res_y[res_y.index >= fvi]
-        correlation = distance_correlation(np.array(y), np.array(res_y))
+        # Ensure results and target are aligned with target by index
+        res_tgt = pd.concat([res_y, y], axis=1)
+        res_tgt.columns = ['results', 'target']
+
+        # Measure Correlation
+        fvi = res_tgt['results'].first_valid_index()
+        res_tgt = res_tgt[res_tgt.index >= fvi]
+        correlation = distance_correlation(np.array(res_tgt.target), np.array(res_tgt.results))
 
     # Save results
     trial.set_user_attr("correlation", correlation)
@@ -127,11 +141,12 @@ def _objective(self, trial, X, y):
 
 
 class Optimize():
-    def __init__(self, function, n_trials=100):
+    def __init__(self, function, n_trials=100, n_jobs=1):
         self.function = function
         self.n_trials = n_trials
+        self.n_jobs = n_jobs
 
-    def fit(self, X, y, idx=0, verbose=False, early_stop=None):
+    def fit(self, X, y, idx=0, verbose=False, early_stop=None, n_jobs=1):
         """
         Optimize a technical indicator
         :param X: Historical dataset

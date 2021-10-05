@@ -4,13 +4,16 @@
   </a>
 </p>
 
-[TuneTA](https://github.com/jmrichardson/tuneta) optimizes technical indicators using [distance correlation](https://towardsdatascience.com/introducing-distance-correlation-a-superior-correlation-metric-d569dc8900c7) to a user defined target feature such as next day return.  Indicator parameter(s) are selected using clustering techniques to avoid "peak" or "lucky" values.  The set of tuned indicators can further be reduced by choosing the most correlated with the target while minimizing correlation with each other (based on user defined maximum correlation). TuneTA maintains its state to add all tuned indicators to multiple data sets (train, validation, test).
+[TuneTA](https://github.com/jmrichardson/tuneta) optimizes technical indicators using a [distance correlation](https://towardsdatascience.com/introducing-distance-correlation-a-superior-correlation-metric-d569dc8900c7) measure to a user defined target feature such as next day return.  Indicator parameter(s) are selected using clustering techniques to avoid "peak" or "lucky" values.  The set of tuned indicators can be pruned by choosing the most correlated with the target while minimizing correlation with each other (based on user defined maximum correlation). TuneTA maintains its state to add all tuned indicators to multiple data sets (train, validation, test).
 
 ### Features
 
-* Given financial prices (OHLCV) and a target feature such as return, TuneTA optimizes the parameter(s) of each technical indicator using distance correlation to the target feature. Distance correlation captures both linear and non-linear strength and provides significant benefit over the popular Pearson correlation.
-* Optimal indicator parameters are selected in a multi-step clustering process to avoid values which are not consistent with neighboring values providing a more robust parameter selection.
-* Selects indicators with the least correlation to each other.  This is helpful for machine learning models which generally perform better with minimal feature intercorrelation.
+* Given financial prices (OHLCV) and a target feature such as return, TuneTA optimizes the parameter(s) of technical indicator(s) using distance correlation to the target feature. Distance correlation captures both linear and non-linear strength and provides significant benefit over the popular Pearson correlation.
+* Optimal indicator parameters are selected in a multi-step clustering process to avoid values which are not consistent with neighboring values, providing a more robust parameter selection.
+* Prune indicators with a maximum correlation to each other.  This is helpful for machine learning models which generally perform better with lower feature intercorrelation.
+* Supports tuning indicator(s) for single or multiple equities.  Multiple equities can be combined into a market basket where indicator parameters are optimized across the entire basket of equities.
+* Multiple time ranges (ie: short, medium and long)
+* Supports pruning preexisting features
 * Persists state to generate identical indicators on multiple datasets (train, validation, test)
 * Parallel processing for technical indicator optimization as well as correlation pruning
 * Supports technical indicators produced from the following packages:
@@ -24,15 +27,15 @@
 
 TuneTA simplifies the process of optimizing many technical indicators while avoiding "peak" values, and selecting the best indicators with minimal correlation between each other (optional). At a high level, TuneTA performs the following steps:
 
-1.  For each indicator, [Optuna](https://optuna.org) searches for the parameter(s) which maximize its correlation to the user defined target (for example, next day return).
+1.  For each indicator, [Optuna](https://optuna.org) searches for parameter(s) which maximize its correlation to a user defined target (for example, next day return).
 2.  After the specified Optuna trials are complete, a 3-step KMeans clustering method is used to select the optimal parameter(s):
 
     1. Each trial is placed in its nearest neighbor cluster based on its distance correlation to the target.  The optimal number of clusters is determined using the elbow method.  The cluster with the highest average correlation is selected with respect to its membership.  In other words, a weighted score is used to select the cluster with highest correlation but also with the most trials.
     2. After the best correlation cluster is selected, the parameters of the trials within the cluster are also clustered. Again, the best cluster of indicator parameter(s) are selected with respect to its membership.
     3. Finally, the centered best trial is selected from the best parameter cluster.
     
-3.  Optionally, the tuned indicators can be pruned by selecting the indicators with a maximum correlation to the other indicators.
-4.  Finally, TuneTA generates each indicator feature with the best parameters.
+3.  Optionally, the tuned indicators can be pruned by selecting the indicators with a maximum correlation to the all other indicators.
+4.  Finally, TuneTA generates all optimized indicators.
 ---
 
 ### Installation
@@ -57,6 +60,8 @@ pip install -U tuneta
 * [Tune Multiple Indicators](#tune-multiple-indicators)
 * [Tune and Prune all Indicators](#tune-and-prune-all-indicators)
 * [TuneTA fit usage](#tuneta-fit-usage)
+* [Tune Market](#tune-market)
+* [Prune Existing Features](#prune-existing-features)
 
 ### Tune RSI Indicator
 
@@ -268,6 +273,31 @@ fta_IFT_RSI_rsi_period_28_wma_period_4                    0.140977
 pta_stc_fast_18_slow_27                                   0.140789
 ...
 ```
+
+### Tune Market
+
+TuneTA supports tuning indicators across a market of equities. Simply, index the input dataframe with the date and symbol similar to the following.  Notice the dataframe still contains OHLCV but is indexed by both date and symbol (see tune_market.py in examples folder):
+
+![](images/market_dataframe.png)
+
+Use TuneTA in the same way as the previous examples
+
+
+### Prune Existing Features
+
+If you have preexisting features in your dataframe (regardless if you use TuneTA to create new ones), I've added a helper prune_df function to prune the all of the features based on intercorrelation.  This is helpful, for example, if you have custom features that you would like to combine with TuneTA and select only the features with maximum correlation with minimal intercorrelation.  The prune_df helper function takes a dataframe and returns the column names of the appropriate features to keep.  The column names can then be used to filter your datasets:
+
+```python
+# Features to keep
+feature_names = tt.prune_df(X_train, y_train, max_correlation=.7, report=False)
+
+# Filter datasets
+X_train = X_train[feature_names]
+X_test = X_test[feature_names]
+```
+
+See prune_dataframe.py in the examples folder
+
 
 ### TuneTA fit usage
 

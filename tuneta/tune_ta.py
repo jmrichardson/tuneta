@@ -19,6 +19,11 @@ from joblib import delayed, Parallel
 import itertools
 
 
+# Distance correlation
+def dc(p0, p1):
+    return distance_correlation(np.array(p0).astype(float), np.array(p1).astype(float))
+
+
 class TuneTA():
 
     def __init__(self, n_jobs=multiprocessing.cpu_count() - 2, verbose=False):
@@ -113,10 +118,10 @@ class TuneTA():
 
                 # Only optimize indicators that contain tunable parameters
                 if suggest:
-                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials).fit, X, y, idx=idx,
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials, n_jobs=self.n_jobs).fit, X, y, idx=idx,
                         verbose=self.verbose, early_stop=early_stop))
                 else:
-                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1).fit, X, y, idx=idx,
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1, n_jobs=self.n_jobs).fit, X, y, idx=idx,
                         verbose=self.verbose, early_stop=early_stop))
 
         # Blocking wait to retrieve results
@@ -219,7 +224,6 @@ class TuneTA():
 
         # Inter Correlation
         pair_order_list = itertools.combinations(features, 2)
-        def dc(p0, p1): return distance_correlation(p0, p1)
         correlations = Parallel(n_jobs=self.n_jobs)(delayed(dc)(p[0], p[1]) for p in pair_order_list)  # Parallelize correlation calculation
         # correlations = [distance_correlation(p[0], p[1]) for p in pair_order_list]
         correlations = squareform(correlations)
@@ -243,4 +247,52 @@ class TuneTA():
         inds = [fit.function.split('(')[0] for fit in self.fitted]
         df = pd.DataFrame({'Indicator': inds, 'Times': times}).sort_values(by='Times', ascending=False)
         print(tabulate(df, headers=df.columns, tablefmt="simple"))
+
+    def prune_df(self, X, y, max_correlation=.7, report=True):
+        if X.isna().any().any() or y.isna().any():
+            raise ValueError("X and y cannot contain missing values")
+
+        # Correlations to target
+        tc = [distance_correlation(np.array(x[1]), np.array(y)) for x in X.iteritems()]
+        names = [x[0] for x in X.iteritems()]
+        target_correlation = pd.DataFrame(tc, index=names, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
+
+        # Columns greater than 0 correlation
+        target_correlation = target_correlation[target_correlation.Correlation > 0]
+
+        if report:
+            print("\nIndicator Correlation to Target:\n")
+            print(tabulate(target_correlation, headers=target_correlation.columns, tablefmt="simple"))
+
+        # Calculate inter correlation
+        columns = target_correlation.index.values
+        features = [x[1] for x in X[columns].iteritems()]
+        pair_order_list = itertools.combinations(features, 2)
+        correlations = Parallel(n_jobs=self.n_jobs)(delayed(dc)(p[0], p[1]) for p in pair_order_list)  # Parallelize correlation calculation
+        correlations = squareform(correlations)
+        components = list(range(len(correlations)))
+        indices = list(range(len(correlations)))
+        most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
+        correlation = correlations[most_correlated[0], most_correlated[1]]
+        while correlation > max_correlation:
+            most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
+            worst = max(most_correlated)
+            components.pop(worst)
+            indices.remove(worst)
+            correlations = correlations[:, indices][indices, :]
+            indices = list(range(len(components)))
+            most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
+            correlation = correlations[most_correlated[0], most_correlated[1]]
+
+        # Get columns of features to keep
+        columns = columns[components]
+
+        # Report intercorrelation
+        if report:
+            correlations = pd.DataFrame(correlations, columns=columns, index=columns)
+            print("\nIntercorrelation after prune:\n")
+            print(tabulate(correlations, headers=correlations.columns, tablefmt="simple"))
+
+        return columns
+
 
