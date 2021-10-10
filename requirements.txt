@@ -1,11 +1,12 @@
 pandas-ta
 finta
 ta-lib
-optuna
 pathos
 tabulate
-scikit-learn
-yellowbrick
 dcor
 yfinance
-numpy==1.20
+optuna
+yellowbrick>=1.2.1
+scikit-learn>=0.23.2
+pandas>=1.2.4
+numpy>=1.20
