@@ -19,11 +19,16 @@ warnings.filterwarnings("ignore")
 
 
 # Apply trial on multi index
-def trial_results(X, function, trial):
+def trial_results(X, function, trial, sym=None):
+    if sym:
+        X = X.droplevel(1)
     res = eval(function)  # Eval contains reference to best trial (in argument) to re-use original parameters
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
     res = pd.DataFrame(res, index=X.index)  # Ensure result aligns with X
+    if sym:
+        res['sym'] = sym
+        res.set_index('sym', append=True, inplace=True)
     return res
 
 
@@ -36,7 +41,7 @@ def _trial(self, trial, X):
     :return:
     """
     if X.index.nlevels == 2:  # support 2 level inddex (data/symbol)
-        res = [trial_results(X, self.function, trial) for _, X in X.groupby(level=1)]
+        res = [trial_results(X, self.function, trial, sym=sym) for sym, X in X.groupby(level=1)]
         res = pd.concat(res, axis=0).sort_index()
     else:
         res = trial_results(X, self.function, trial)

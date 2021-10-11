@@ -136,3 +136,4 @@ dmypy.json
 examples/test.py
 examples/data.job
 examples/tune_quick.py
+*.job
