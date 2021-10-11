@@ -87,13 +87,18 @@ def _early_stopping_opt(study, trial):
 
 
 # Apply best trial parameters on multi-index dataframe
-def multi_obj_res(X, function, idx, trial):
+def eval_res(X, function, idx, trial, sym=None):
+    if sym:
+        X = X.droplevel(1)
     res = eval(function)
     if isinstance(res, tuple):
         res = res[idx]
     res = pd.DataFrame(res, index=X.index)
     if len(res.columns) > 1:
         res = pd.DataFrame(res.iloc[:, idx])
+    if sym:
+        res['sym'] = sym
+        res.set_index('sym', append=True, inplace=True)
     return res
 
 
@@ -110,10 +115,10 @@ def _objective(self, trial, X, y):
     # Execute trial function
     try:
         if X.index.nlevels == 2:
-            res = [multi_obj_res(X, self.function, self.idx, trial) for _, X in X.groupby(level=1)]
+            res = [eval_res(X, self.function, self.idx, trial, sym=sym) for sym, X in X.groupby(level=1)]
             res = pd.concat(res, axis=0).sort_index()
         else:
-            res = multi_obj_res(X, self.function, self.idx, trial)
+            res = eval_res(X, self.function, self.idx, trial)
     except:
         raise RuntimeError(f"Optuna execution error: {self.function}")
 

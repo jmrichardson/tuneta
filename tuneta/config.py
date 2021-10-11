@@ -56,7 +56,7 @@ talib_indicators = ['tta.BBANDS', 'tta.DEMA', 'tta.EMA', 'tta.HT_TRENDLINE', 'tt
                         'tta.LINEARREG_ANGLE', 'tta.LINEARREG_INTERCEPT', 'tta.LINEARREG_SLOPE', 'tta.STDDEV',
                         'tta.TSF', 'tta.VAR',]
 
-pandas_ta_indicators = ['pta.ebsw', 'pta.stdev', 'pta.mad', 'pta.quantile', 'pta.skew', 'pta.tos_stdevall', 'pta.variance', 'pta.zscore', 'pta.median', 'pta.kurtosis',
+pandas_ta_indicators = ['pta.ebsw', 'pta.stdev', 'pta.mad', 'pta.quantile', 'pta.skew', 'pta.variance', 'pta.zscore', 'pta.median', 'pta.kurtosis',
     'pta.entropy', 'pta.eri', 'pta.bias', 'pta.cg', 'pta.willr', 'pta.psl', 'pta.rvgi', 'pta.kdj', 'pta.smi', 'pta.fisher', 'pta.macd', 'pta.mom', 'pta.stochrsi',
     'pta.apo', 'pta.squeeze_pro', 'pta.inertia', 'pta.cmo', 'pta.slope', 'pta.roc', 'pta.rsx', 'pta.dm', 'pta.cci', 'pta.cti', 'pta.er', 'pta.uo', 'pta.bop', 'pta.cfo',
     'pta.stc', 'pta.tsi', 'pta.ao', 'pta.stoch', 'pta.qqe', 'pta.coppock', 'pta.rsi', 'pta.trix', 'pta.ppo', 'pta.pgo', 'pta.squeeze', 'pta.brar', 'pta.td_seq', 'pta.kst',
