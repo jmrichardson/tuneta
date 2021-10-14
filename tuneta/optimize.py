@@ -124,14 +124,14 @@ def _objective(self, trial, X, y):
     """
 
     # Execute trial function
-    try:
-        if X.index.nlevels == 2:
-            res = [eval_res(X, self.function, self.idx, trial, sym=sym) for sym, X in X.groupby(level=1)]
-            res = pd.concat(res, axis=0).sort_index()
-        else:
-            res = eval_res(X, self.function, self.idx, trial)
-    except:
-        raise RuntimeError(f"Optuna execution error: {self.function}")
+    # try:
+    if X.index.nlevels == 2:
+        res = [eval_res(X, self.function, self.idx, trial, sym=sym) for sym, X in X.groupby(level=1)]
+        res = pd.concat(res, axis=0).sort_index()
+    else:
+        res = eval_res(X, self.function, self.idx, trial)
+    # except:
+        # raise RuntimeError(f"Optuna execution error: {self.function}")
 
     # y may be a subset of X, so reduce result to y and convert to series
     res_y = res.reindex(y.index).iloc[:, 0].replace([np.inf, -np.inf], np.nan)
