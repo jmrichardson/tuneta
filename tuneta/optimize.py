@@ -22,7 +22,10 @@ warnings.filterwarnings("ignore")
 def trial_results(X, function, trial, sym=None):
     if sym:
         X = X.droplevel(1)
-    res = eval(function)  # Eval contains reference to best trial (in argument) to re-use original parameters
+    try:
+        res = eval(function) # Eval contains reference to best trial (in argument) to re-use original parameters
+    except Exception as e:
+        raise Exception(e)
     if isinstance(res, tuple):
         res = pd.DataFrame(res).T
     res = pd.DataFrame(res, index=X.index)  # Ensure result aligns with X
@@ -95,7 +98,10 @@ def _early_stopping_opt(study, trial):
 def eval_res(X, function, idx, trial, sym=None):
     if sym:
         X = X.droplevel(1)
-    res = eval(function)
+    try:
+        res = eval(function)
+    except Exception as e:
+        raise Exception(e)
     if isinstance(res, tuple):
         res = res[idx]
     res = pd.DataFrame(res, index=X.index)
