@@ -101,6 +101,7 @@ def eval_res(X, function, idx, trial, sym=None):
     try:
         res = eval(function)
     except Exception as e:
+        print(f"Error:  Function: {function}  Parameters: {trial.params}")
         raise Exception(e)
     if isinstance(res, tuple):
         res = res[idx]

@@ -17,6 +17,7 @@ from collections import OrderedDict
 from scipy.spatial.distance import squareform
 from joblib import delayed, Parallel
 import itertools
+from datetime import datetime
 
 
 # Distance correlation
@@ -44,6 +45,9 @@ class TuneTA():
         # No missing values allowed
         if X.isna().any().any() or y.isna().any():
             raise ValueError("X and y cannot contain missing values")
+
+        if not isinstance(X.index.get_level_values(0)[0], datetime):
+            raise ValueError("Index must be of type datetime")
 
         self.fitted = []  # List containing each indicator completed study
         X.columns = X.columns.str.lower()  # columns must be lower case
