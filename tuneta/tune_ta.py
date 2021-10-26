@@ -27,7 +27,7 @@ def dc(p0, p1):
 
 class TuneTA():
 
-    def __init__(self, n_jobs=multiprocessing.cpu_count() - 2, verbose=False):
+    def __init__(self, n_jobs=1, verbose=False):
         self.fitted = []
         self.n_jobs = n_jobs
         self.verbose = verbose
@@ -122,10 +122,10 @@ class TuneTA():
 
                 # Only optimize indicators that contain tunable parameters
                 if suggest:
-                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials, n_jobs=self.n_jobs).fit, X, y, idx=idx,
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials).fit, X, y, idx=idx,
                         verbose=self.verbose, early_stop=early_stop))
                 else:
-                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1, n_jobs=self.n_jobs).fit, X, y, idx=idx,
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1).fit, X, y, idx=idx,
                         verbose=self.verbose, early_stop=early_stop))
 
         # Blocking wait to retrieve results

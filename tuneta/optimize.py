@@ -12,7 +12,6 @@ from timeit import default_timer as timer
 from tuneta.utils import col_name
 from tuneta.utils import distance_correlation
 from yellowbrick.cluster import KElbowVisualizer
-from joblib import delayed, Parallel
 import json
 import warnings
 warnings.filterwarnings("ignore")
@@ -131,8 +130,6 @@ def _objective(self, trial, X, y):
         res = pd.concat(res, axis=0).sort_index()
     else:
         res = eval_res(X, self.function, self.idx, trial)
-    # except:
-        # raise RuntimeError(f"Optuna execution error: {self.function}")
 
     # y may be a subset of X, so reduce result to y and convert to series
     res_y = res.reindex(y.index).iloc[:, 0].replace([np.inf, -np.inf], np.nan)
@@ -158,12 +155,11 @@ def _objective(self, trial, X, y):
 
 
 class Optimize():
-    def __init__(self, function, n_trials=100, n_jobs=1):
+    def __init__(self, function, n_trials=100):
         self.function = function
         self.n_trials = n_trials
-        self.n_jobs = n_jobs
 
-    def fit(self, X, y, idx=0, verbose=False, early_stop=None, n_jobs=1):
+    def fit(self, X, y, idx=0, verbose=False, early_stop=None):
         """
         Optimize a technical indicator
         :param X: Historical dataset
@@ -193,7 +189,7 @@ class Optimize():
         # Start optimization trial
         try:
             self.study.optimize(lambda trial: _objective(self, trial, X, y),
-                n_trials=self.n_trials, callbacks=[_early_stopping_opt])
+                n_trials=self.n_trials, callbacks=[_early_stopping_opt], n_jobs=1)
 
         # Early stopping (not officially supported by Optuna)
         except optuna.exceptions.OptunaError:
