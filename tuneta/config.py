@@ -203,6 +203,7 @@ finta_indicatrs = [
     'fta.EVWMA',
     'fta.VWAP',
     'fta.SMMA',
+    # 'fta.FRAMA',  # Requires even parameters (not implemented)
     'fta.MACD',
     'fta.PPO',
     'fta.VW_MACD',
@@ -252,14 +253,18 @@ finta_indicatrs = [
     'fta.BASPN',
     'fta.CMO',
     'fta.CHANDELIER',
+    'fta.QSTICK',
+    # 'fta.TMF',  # Not implemented
     'fta.WTO',
     'fta.FISH',
+    'fta.ICHIMOKU',
     'fta.APZ',
     'fta.SQZMI',
     'fta.VPT',
     'fta.FVE',
     'fta.VFI',
     'fta.MSD',
-    'fta.STC'
+    'fta.STC',
+    # 'fta.WAVEPM'  # No attribute error
 ]
 
