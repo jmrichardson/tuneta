@@ -23,6 +23,9 @@ def col_name(function, study_best_params):
 
     # Concatenate name and params to define
     col = f"{function_name}_{params}"
+
+    # Remove any trailing underscores
+    col = re.sub(r'_$', '', col)
     return col
 
 

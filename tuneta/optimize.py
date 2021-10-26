@@ -22,7 +22,7 @@ def trial_results(X, function, trial, sym=None):
     if sym:
         X = X.droplevel(1)
     try:
-        res = eval(function) # Eval contains reference to best trial (in argument) to re-use original parameters
+        res = eval(function)  # Eval contains reference to best trial (in argument) to re-use original parameters
     except Exception as e:
         raise Exception(e)
     if isinstance(res, tuple):
