@@ -22,7 +22,9 @@ from datetime import datetime
 
 # Distance correlation
 def dc(p0, p1):
-    return distance_correlation(np.array(p0).astype(float), np.array(p1).astype(float))
+    df = pd.concat([p0, p1], axis=1).dropna()
+    res = distance_correlation(np.array(df.iloc[:, 0]).astype(float), np.array(df.iloc[:, 1]).astype(float))
+    return res
 
 
 class TuneTA():
@@ -228,8 +230,7 @@ class TuneTA():
 
         # Inter Correlation
         pair_order_list = itertools.combinations(features, 2)
-        correlations = Parallel(n_jobs=self.n_jobs)(delayed(dc)(p[0], p[1]) for p in pair_order_list)  # Parallelize correlation calculation
-        # correlations = [distance_correlation(p[0], p[1]) for p in pair_order_list]
+        correlations = Parallel(n_jobs=self.n_jobs)(delayed(dc)(p[0], p[1]) for p in pair_order_list)
         correlations = squareform(correlations)
         self.f_corr = pd.DataFrame(correlations, columns=fns, index=fns)
 

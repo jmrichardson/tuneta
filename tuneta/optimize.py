@@ -145,6 +145,12 @@ def _objective(self, trial, X, y):
         # Measure Correlation
         fvi = res_tgt['results'].first_valid_index()
         res_tgt = res_tgt[res_tgt.index >= fvi]
+
+        if res_tgt.results.isnull().sum() > int(len(res_tgt.results) * .90):
+            print(f"Error:  Function: {self.function}  Parameters: {trial.params}")
+            raise ValueError(f"Excessive NANs - Function: {self.function}  Parameters: {trial.params}")
+        else:
+            res_tgt.dropna(inplace=True)
         correlation = distance_correlation(np.array(res_tgt.target), np.array(res_tgt.results))
 
     # Save results

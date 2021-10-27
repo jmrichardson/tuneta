@@ -91,7 +91,6 @@ pandas_ta_indicators = [
     'pta.zlma',
     'pta.decreasing',
     'pta.increasing',
-    'pta.ebsw',
     'pta.stdev',
     'pta.mad',
     'pta.quantile',
