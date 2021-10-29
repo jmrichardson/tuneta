@@ -138,3 +138,5 @@ examples/data.job
 examples/tune_quick.py
 *.job
 examples/try.py
+*.csv
+examples/debug.py

@@ -26,7 +26,19 @@ def trial_results(X, function, trial, sym=None):
     except Exception as e:
         raise Exception(e)
     if isinstance(res, tuple):
-        res = pd.DataFrame(res).T
+        try:
+            res = pd.DataFrame(res).T
+        except Exception as e:
+            print("Error:")
+            print(f"Function: {function}")
+            print(f"X Length:  {len(X)}")
+            for k, v in enumerate(res):
+                u, c = np.unique(v.index, return_counts=True)
+                dup = u[c > 1]
+                print(f"Series {k} duplicates: {len(dup)}")
+                print(v)
+            raise Exception(e)
+
     res = pd.DataFrame(res, index=X.index)  # Ensure result aligns with X
     if sym:
         res['sym'] = sym
