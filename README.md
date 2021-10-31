@@ -86,8 +86,8 @@ For simplicity, lets optimize a single indicator:
 
 * RSI Indicator
 * Two time periods (short and long term): 2-30 and 31-180
-* Maximum of 500 trials per time period to search for the best indicator parameter
-* Stop after 100 trials per time period without improvement
+* Maximum of 100 trials per time period to search for the best indicator parameter
+* Stop after 20 trials per time period without improvement
 
 The following is a snippet of the complete example found in the examples directory:
 
@@ -96,12 +96,12 @@ tt = TuneTA(n_jobs=4, verbose=True)
 tt.fit(X_train, y_train,
     indicators=['tta.RSI'],
     ranges=[(2, 30), (31, 180)],
-    trials=500,
-    early_stop=100,
+    trials=100,
+    early_stop=20,
 )
 ```
 
-Two studies are created for each time period with up to 500 trials to test different indicator length values.  The correlation values are displayed based on the trial parameter.  The best trial with its respective parameter value is saved for both time ranges. 
+Two studies are created for each time period with up to 100 trials to test different indicator length values.  The correlation values are displayed based on the trial parameter.  The best trial with its respective parameter value is saved for both time ranges. 
 
 To view the correlation of both indicators to the target return as well as each other:
 ```python
@@ -154,8 +154,8 @@ Building from the previous example, lets optimize a handful of indicators:
 tt.fit(X_train, y_train,
     indicators=['pta.slope', 'pta.stoch', 'tta.MACD', 'tta.MOM', 'fta.SMA'],
     ranges=[(2, 60)],
-    trials=500,
-    early_stop=100,
+    trials=100,
+    early_stop=20,
 )
 ```
 
@@ -205,7 +205,7 @@ Notice above that both slope(15) and mom(15) are perfectly correlated in the int
 Lets remove correlated indicators with a maximum threshold of .85 for demonstration purposes. Based on the above correlation report, the two indicator pairs that have a correlation of greater than .85 are MACD/Stoch and Slope/Mom.  We can easily remove the worst correlated to the target of each pair (removes Stoch as MACD is more correlated to the target and either slope or mom can be removed as they are both identically correlated to the target).  Notice that all indicators now have an intercorrelation less than .85:
 
 ```python
-tt.prune(max_correlation=.85)
+tt.prune(max_inter_correlation=.85)
 ```
 ```csharp
 Indicator Correlation to Target:
@@ -232,7 +232,8 @@ features = tt.transform(X_train)
 
 ### Tune and Prune all Indicators
 
-Building from the previous examples, lets optimize all available indicators:
+Building from the previous examples, lets optimize all available indicators.  Note the addition of min_target_correlation which removes indicators below target correlation threshold:
+
 
 ```python
 tt.fit(X_train, y_train,
@@ -240,6 +241,7 @@ tt.fit(X_train, y_train,
     ranges=[(2, 30)],
     trials=500,
     early_stop=100,
+    min_target_correlation=.05,
 )
 ```
 As in the previous examples we can see the correlation to the target with the report function:
@@ -268,7 +270,7 @@ pta_rsi_length_19_scalar_26                                                     
 Let's prune the indicators to have a maximum of .7 correlation with any of the other indicators:
 
 ```python
-tt.prune(max_correlation=.7)
+tt.prune(max_inter_correlation=.7)
 ```
 Show the correlation for both target and intercorrelation after prune:
 ```python
@@ -306,7 +308,7 @@ If you have preexisting features in your dataframe (regardless if you use TuneTA
 
 ```python
 # Features to keep
-feature_names = tt.prune_df(X_train, y_train, max_correlation=.7, report=False)
+feature_names = tt.prune_df(X_train, y_train, min_target_correlation=.05, max_inter_correlation=.7, report=False)
 
 # Filter datasets
 X_train = X_train[feature_names]

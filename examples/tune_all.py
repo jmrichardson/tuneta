@@ -29,7 +29,7 @@ if __name__ == "__main__":
     tt.report(target_corr=True, features_corr=True)
 
     # Select features with at most x correlation between each other
-    tt.prune(max_correlation=.7)
+    tt.prune(max_inter_correlation=.7)
 
     # Show correlation of indicators to target and among themselves
     tt.report(target_corr=True, features_corr=True)

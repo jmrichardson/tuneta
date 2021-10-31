@@ -34,7 +34,7 @@ class TuneTA():
         self.n_jobs = n_jobs
         self.verbose = verbose
 
-    def fit(self, X, y, trials=5, indicators=['tta'], ranges=[(3, 180)], early_stop=99999):
+    def fit(self, X, y, trials=5, indicators=['tta'], ranges=[(3, 180)], early_stop=99999, min_target_correlation=0.001):
         """
         Optimize indicator parameters to maximize correlation
         :param X: Historical dataset
@@ -50,6 +50,9 @@ class TuneTA():
 
         if not isinstance(X.index.get_level_values(0)[0], datetime):
             raise ValueError("Index must be of type datetime")
+
+        if len(X) != len(y):
+            raise ValueError("Length of X and y must be identical")
 
         self.fitted = []  # List containing each indicator completed study
         X.columns = X.columns.str.lower()  # columns must be lower case
@@ -136,19 +139,20 @@ class TuneTA():
         # Fits must contain best trial data
         self.fitted = [f for f in self.fitted if len(f.study.user_attrs) > 0]
 
-        # Remove any fits with zero correlation
-        self.fitted = [f for f in self.fitted if f.study.user_attrs['best_trial'].user_attrs['correlation'] > 0]
+        # Remove any fits with less than minimum target correlation
+        self.fitted = [f for f in self.fitted if f.study.user_attrs['best_trial'].user_attrs['correlation'] > min_target_correlation]
 
         # Order fits by correlation (Descending)
         self.fitted = sorted([f for f in self.fitted], key=lambda x:x.study.user_attrs['best_trial'].value, reverse=True)
 
-    def prune(self, max_correlation=.7):
+    def prune(self, max_inter_correlation=.7):
         """
         Select most correlated with target, least intercorrelated
         :param top: Selects top x most correlated with target
         :param studies: From top x, keep y least intercorelated
         :return:
         """
+
         if not hasattr(self, 'f_corr'):
             self.features_corr()
 
@@ -160,7 +164,7 @@ class TuneTA():
 
         most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
         correlation = correlations[most_correlated[0], most_correlated[1]]
-        while correlation > max_correlation:
+        while correlation > max_inter_correlation:
             most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
             worst = max(most_correlated)
             components.pop(worst)
@@ -203,7 +207,6 @@ class TuneTA():
         # Combine results into dataframe to return
         res = pd.concat(self.result, axis=1)
         return res
-
 
     def target_corr(self):
         fns = []  # Function names
@@ -253,7 +256,7 @@ class TuneTA():
         df = pd.DataFrame({'Indicator': inds, 'Times': times}).sort_values(by='Times', ascending=False)
         print(tabulate(df, headers=df.columns, tablefmt="simple"))
 
-    def prune_df(self, X, y, max_correlation=.7, report=True):
+    def prune_df(self, X, y, min_target_correlation=.05, max_inter_correlation=.7, report=True):
         if X.isna().any().any() or y.isna().any():
             raise ValueError("X and y cannot contain missing values")
 
@@ -263,7 +266,7 @@ class TuneTA():
         target_correlation = pd.DataFrame(tc, index=names, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
 
         # Columns greater than 0 correlation
-        target_correlation = target_correlation[target_correlation.Correlation > 0]
+        target_correlation = target_correlation[target_correlation.Correlation > min_target_correlation]
 
         if report:
             print("\nIndicator Correlation to Target:\n")
@@ -279,7 +282,7 @@ class TuneTA():
         indices = list(range(len(correlations)))
         most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
         correlation = correlations[most_correlated[0], most_correlated[1]]
-        while correlation > max_correlation:
+        while correlation > max_inter_correlation:
             most_correlated = np.unravel_index(np.argmax(correlations), correlations.shape)
             worst = max(most_correlated)
             components.pop(worst)

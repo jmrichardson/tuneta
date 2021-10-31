@@ -28,7 +28,7 @@ if __name__ == "__main__":
     tt = TuneTA(n_jobs=4, verbose=True)
 
     # Features to keep
-    feature_names = tt.prune_df(X_train, y_train, max_correlation=.7, report=True)
+    feature_names = tt.prune_df(X_train, y_train, min_target_correlation=.01, max_inter_correlation=.7, report=True)
 
     # Filter datasets
     X_train = X_train[feature_names]
