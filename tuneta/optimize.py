@@ -12,6 +12,7 @@ from timeit import default_timer as timer
 from tuneta.utils import col_name
 from tuneta.utils import distance_correlation
 from yellowbrick.cluster import KElbowVisualizer
+from tuneta.utils import remove_consecutive_duplicates_and_nans
 import json
 import warnings
 warnings.filterwarnings("ignore")
@@ -146,23 +147,21 @@ def _objective(self, trial, X, y):
     # y may be a subset of X, so reduce result to y and convert to series
     res_y = res.reindex(y.index).iloc[:, 0].replace([np.inf, -np.inf], np.nan)
 
+    if self.remove_consecutive_duplicates:
+        res_y = remove_consecutive_duplicates_and_nans(res_y)
+
     # Obtain distance correlation
-    if sum(np.isnan(res_y)) >= len(res_y)*.9:  # If mostly nans in result, return nan correlation
+    # Ensure results and target are aligned with target by index
+    res_tgt = pd.concat([res_y, y], axis=1)
+    res_tgt.columns = ['results', 'target']
+
+    # Measure Correlation
+    fvi = res_tgt['results'].first_valid_index()
+    if fvi is None:
         correlation = np.nan
     else:
-        # Ensure results and target are aligned with target by index
-        res_tgt = pd.concat([res_y, y], axis=1)
-        res_tgt.columns = ['results', 'target']
-
-        # Measure Correlation
-        fvi = res_tgt['results'].first_valid_index()
         res_tgt = res_tgt[res_tgt.index >= fvi]
-
-        if res_tgt.results.isnull().sum() > int(len(res_tgt.results) * .90):
-            print(f"Error:  Function: {self.function}  Parameters: {trial.params}")
-            raise ValueError(f"Excessive NANs - Function: {self.function}  Parameters: {trial.params}")
-        else:
-            res_tgt.dropna(inplace=True)
+        res_tgt.dropna(inplace=True)
         correlation = distance_correlation(np.array(res_tgt.target), np.array(res_tgt.results))
 
     # Save results
@@ -173,9 +172,10 @@ def _objective(self, trial, X, y):
 
 
 class Optimize():
-    def __init__(self, function, n_trials=100):
+    def __init__(self, function, n_trials=100, remove_consecutive_duplicates=False):
         self.function = function
         self.n_trials = n_trials
+        self.remove_consecutive_duplicates = remove_consecutive_duplicates
 
     def fit(self, X, y, idx=0, verbose=False, early_stop=None):
         """

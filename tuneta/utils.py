@@ -33,6 +33,14 @@ def distance_correlation(a, b):
     return dcor.distance_correlation(a, b)
 
 
+def remove_consecutive_duplicates_and_nans(s):
+    shifted = s.astype(object).shift(-1, fill_value=object())
+    return s.loc[
+        (shifted != s)
+        & ~(shifted.isna() & s.isna())
+    ]
+
+
 # import seaborn as sns
 # import matplotlib.pyplot as plt
 

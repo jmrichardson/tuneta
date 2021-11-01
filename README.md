@@ -336,7 +336,7 @@ Parameters:
     * [(2-30, 31-90)]: Two time periods (short and long term)
 * trials: Number of trials to search for optimal parameters
 * early_stop: Max number of trials without improvement
-
+* min_target_correlation: Minimum correlation to target required
 ---
 
 

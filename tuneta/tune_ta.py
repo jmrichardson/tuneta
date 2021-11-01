@@ -34,7 +34,7 @@ class TuneTA():
         self.n_jobs = n_jobs
         self.verbose = verbose
 
-    def fit(self, X, y, trials=5, indicators=['tta'], ranges=[(3, 180)], early_stop=99999, min_target_correlation=0.001):
+    def fit(self, X, y, trials=5, indicators=['tta'], ranges=[(3, 180)], early_stop=99999, min_target_correlation=0.001, remove_consecutive_duplicates=False):
         """
         Optimize indicator parameters to maximize correlation
         :param X: Historical dataset
@@ -127,10 +127,10 @@ class TuneTA():
 
                 # Only optimize indicators that contain tunable parameters
                 if suggest:
-                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials).fit, X, y, idx=idx,
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=trials, remove_consecutive_duplicates=remove_consecutive_duplicates).fit, X, y, idx=idx,
                         verbose=self.verbose, early_stop=early_stop))
                 else:
-                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1).fit, X, y, idx=idx,
+                    self.fitted.append(pool.apipe(Optimize(function=fn, n_trials=1, remove_consecutive_duplicates=remove_consecutive_duplicates).fit, X, y, idx=idx,
                         verbose=self.verbose, early_stop=early_stop))
 
         # Blocking wait to retrieve results
@@ -293,14 +293,14 @@ class TuneTA():
             correlation = correlations[most_correlated[0], most_correlated[1]]
 
         # Get columns of features to keep
-        columns = columns[components]
+        if len(columns):
+            columns = columns[components]
 
-        # Report intercorrelation
-        if report:
-            correlations = pd.DataFrame(correlations, columns=columns, index=columns)
-            print("\nIntercorrelation after prune:\n")
-            print(tabulate(correlations, headers=correlations.columns, tablefmt="simple"))
-
+            # Report intercorrelation
+            if report:
+                correlations = pd.DataFrame(correlations, columns=columns, index=columns)
+                print("\nIntercorrelation after prune:\n")
+                print(tabulate(correlations, headers=correlations.columns, tablefmt="simple"))
         return columns
 
 
