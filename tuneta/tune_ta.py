@@ -145,7 +145,7 @@ class TuneTA():
         # Order fits by correlation (Descending)
         self.fitted = sorted([f for f in self.fitted], key=lambda x:x.study.user_attrs['best_trial'].value, reverse=True)
 
-    def prune(self, max_inter_correlation=.7):
+    def prune(self, max_inter_correlation=.7, top_prior=99999, top_post=99999):
         """
         Select most correlated with target, least intercorrelated
         :param top: Selects top x most correlated with target
@@ -153,7 +153,20 @@ class TuneTA():
         :return:
         """
 
-        if not hasattr(self, 'f_corr'):
+        fit_count = len(self.fitted)
+
+        # Create feature correlation dataframe and remove duplicates
+        feature_correlation = [[f.study.user_attrs['name'], f.study.user_attrs['best_trial'].user_attrs['correlation']] for f in self.fitted]
+        feature_correlation = pd.DataFrame(feature_correlation).sort_values(by=1, ascending=False)
+        feature_correlation = feature_correlation.drop_duplicates(subset=0, keep="first")  # Duplicate indicators
+        feature_correlation[1] = feature_correlation[1].round(4)
+        feature_correlation = feature_correlation.drop_duplicates(subset=[1], keep="first")  # Duplicate correlation
+
+        # Filter top correlated features
+        feature_correlation = feature_correlation.head(top_prior)
+        self.fitted = [f for i, f in enumerate(self.fitted) if i in feature_correlation.index]
+
+        if not hasattr(self, 'f_corr') or fit_count != len(self.fitted):
             self.features_corr()
 
         # Iteratively removes least fit individual of most correlated pairs of studies
@@ -175,7 +188,7 @@ class TuneTA():
             correlation = correlations[most_correlated[0], most_correlated[1]]
 
         # Remove most correlated fits
-        self.fitted = [self.fitted[i] for i in components]
+        self.fitted = [self.fitted[i] for i in components][:top_post]
 
         # Recalculate correlation of fits
         self.target_corr()
@@ -256,7 +269,7 @@ class TuneTA():
         df = pd.DataFrame({'Indicator': inds, 'Times': times}).sort_values(by='Times', ascending=False)
         print(tabulate(df, headers=df.columns, tablefmt="simple"))
 
-    def prune_df(self, X, y, min_target_correlation=.05, max_inter_correlation=.7, report=True):
+    def prune_df(self, X, y, min_target_correlation=.05, max_inter_correlation=.7, report=True, top_prior=99999, top_post=99999):
         if X.isna().any().any() or y.isna().any():
             raise ValueError("X and y cannot contain missing values")
 
@@ -267,6 +280,9 @@ class TuneTA():
 
         # Columns greater than 0 correlation
         target_correlation = target_correlation[target_correlation.Correlation > min_target_correlation]
+
+        # Intercorrelation pruning is expensive.
+        target_correlation = target_correlation.head(top_prior)
 
         if report:
             print("\nIndicator Correlation to Target:\n")
@@ -301,6 +317,15 @@ class TuneTA():
                 correlations = pd.DataFrame(correlations, columns=columns, index=columns)
                 print("\nIntercorrelation after prune:\n")
                 print(tabulate(correlations, headers=correlations.columns, tablefmt="simple"))
+
+            # Correlations to target
+            X = X[columns]
+            tc = [distance_correlation(np.array(x[1]), np.array(y)) for x in X.iteritems()]
+            names = [x[0] for x in X.iteritems()]
+            target_correlation = pd.DataFrame(tc, index=names, columns=['Correlation']).sort_values(by=['Correlation'], ascending=False)
+            target_correlation = target_correlation.head(top_post)
+            columns = target_correlation.index.values
+
         return columns
 
 
