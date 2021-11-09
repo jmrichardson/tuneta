@@ -140,3 +140,4 @@ examples/tune_quick.py
 examples/try.py
 *.csv
 examples/debug.py
+examples/tune_support.py

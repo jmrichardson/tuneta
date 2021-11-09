@@ -42,13 +42,17 @@ TuneTA simplifies the process of optimizing many technical indicators while avoi
 
 Install the latest code (recommended):
 
+Note:  TuneTA requires the latest development code of YellowBrick until an official release.  A [bug](https://github.com/DistrictDataLabs/yellowbrick/issues/1185) exists that could cause an [issue](https://github.com/jmrichardson/tuneta/issues/16) with TuneTA.
+
 ```python
+pip install -U git+https://github.com/DistrictDataLabs/yellowbrick.git
 pip install -U git+https://github.com/jmrichardson/tuneta
 ```
 
 Install the latest release:
 
 ```python
+pip install -U git+https://github.com/DistrictDataLabs/yellowbrick.git
 pip install -U tuneta
 ```
 
@@ -63,7 +67,7 @@ Install using Colab:
 !make install
 !pip install Ta-Lib
 !pip install -U git+https://github.com/jmrichardson/tuneta
-!pip install yellowbrick==1.3.post1
+!pip install -U git+https://github.com/DistrictDataLabs/yellowbrick.git
 !pip install numpy==1.20.3
 !pip install numba==0.54.1
 !pip install pandas==1.3.4
