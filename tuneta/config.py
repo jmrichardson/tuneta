@@ -18,7 +18,7 @@ tune_params = ['width', 'fast', 'slow', 'signal', 'length', 'max_lookback', 'min
 talib_indicators = ['tta.BBANDS', 'tta.DEMA', 'tta.EMA', 'tta.HT_TRENDLINE', 'tta.KAMA', 'tta.MA',
                         'tta.MIDPOINT', 'tta.MIDPRICE', 'tta.SAR', 'tta.SAREXT', 'tta.SMA', 'tta.T3', 'tta.TEMA',
                         'tta.TRIMA',
-                        'tta.WMA', 'tta.ADX', 'tta.ADXR', 'tta.APO', 'tta.AROON:1', 'tta.AROONOSC', 'tta.BOP',
+                        'tta.WMA', 'tta.ADX', 'tta.ADXR', 'tta.APO', 'tta.AROON', 'tta.AROONOSC', 'tta.BOP',
                         'tta.CCI', 'tta.CMO',
                         'tta.DX', 'tta.MACD', 'tta.MACDEXT', 'tta.MACDFIX', 'tta.MFI', 'tta.MINUS_DI', 'tta.MINUS_DM',
                         'tta.MOM',
@@ -66,7 +66,7 @@ pandas_ta_indicators = [
     'pta.hlc3',
     # 'pta.hma',  # does not accept low ranges
     'pta.hwma',
-    'pta.ichimoku',
+     # 'pta.ichimoku',  # data leak
     'pta.jma',
     'pta.kama',
     'pta.linreg',
@@ -152,7 +152,7 @@ pandas_ta_indicators = [
     'pta.ttm_trend',
     'pta.vhf',
     'pta.aroon',
-    'pta.dpo',
+    # 'pta.dpo',  # data leak
     'pta.donchian',
     'pta.accbands',
     'pta.ui',
