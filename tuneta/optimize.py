@@ -43,7 +43,7 @@ def trial_results(X, function, trial, sym=None):
 
     res = pd.DataFrame(res, index=X.index)  # Ensure result aligns with X
     if sym:
-        res['sym'] = sym
+        res[level_name] = sym
         res.set_index(level_name, append=True, inplace=True)
     return res
 
@@ -123,7 +123,7 @@ def eval_res(X, function, idx, trial, sym=None):
     if len(res.columns) > 1:
         res = pd.DataFrame(res.iloc[:, idx])
     if sym:
-        res['sym'] = sym
+        res[level_name] = sym
         res.set_index(level_name, append=True, inplace=True)
     return res
 
