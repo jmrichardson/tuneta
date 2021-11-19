@@ -21,6 +21,7 @@ warnings.filterwarnings("ignore")
 # Apply trial on multi index
 def trial_results(X, function, trial, sym=None):
     if sym:
+        level_name = X.index.names[1]
         X = X.droplevel(1)
     try:
         res = eval(function)  # Eval contains reference to best trial (in argument) to re-use original parameters
@@ -43,7 +44,7 @@ def trial_results(X, function, trial, sym=None):
     res = pd.DataFrame(res, index=X.index)  # Ensure result aligns with X
     if sym:
         res['sym'] = sym
-        res.set_index('sym', append=True, inplace=True)
+        res.set_index(level_name, append=True, inplace=True)
     return res
 
 
@@ -109,6 +110,7 @@ def _early_stopping_opt(study, trial):
 # Apply best trial parameters on multi-index dataframe
 def eval_res(X, function, idx, trial, sym=None):
     if sym:
+        level_name = X.index.names[1]
         X = X.droplevel(1)
     try:
         res = eval(function)
@@ -122,7 +124,7 @@ def eval_res(X, function, idx, trial, sym=None):
         res = pd.DataFrame(res.iloc[:, idx])
     if sym:
         res['sym'] = sym
-        res.set_index('sym', append=True, inplace=True)
+        res.set_index(level_name, append=True, inplace=True)
     return res
 
 
