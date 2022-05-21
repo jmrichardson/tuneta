@@ -231,7 +231,7 @@ pandas_ta_indicators = [
     "pta.hlc3",
     # 'pta.hma',  # does not accept low ranges
     "pta.hwma",
-    # 'pta.ichimoku',  # data leak
+    "pta.ichimoku",
     "pta.jma",
     "pta.kama",
     "pta.linreg",
@@ -317,7 +317,7 @@ pandas_ta_indicators = [
     "pta.ttm_trend",
     "pta.vhf",
     "pta.aroon",
-    # 'pta.dpo',  # data leak
+    "pta.dpo",
     "pta.donchian",
     "pta.accbands",
     "pta.ui",
@@ -344,7 +344,7 @@ pandas_ta_indicators = [
     "pta.obv",
     "pta.pvol",
     "pta.eom",
-    "pta.pvr",
+    # "pta.pvr", # needs **kwargs added to the function in pandas-ta
     "pta.ad",
     "pta.cmf",
 ]

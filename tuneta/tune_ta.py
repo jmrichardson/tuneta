@@ -135,6 +135,8 @@ class TuneTA:
                     elif param in tune_params:
                         suggest = True
                         fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
+                if "pta" in fn:
+                    fn += "lookahead=False, "
                 fn += ")"
 
                 # Only optimize indicators that contain tunable parameters
