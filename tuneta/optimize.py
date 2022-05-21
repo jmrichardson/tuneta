@@ -1,20 +1,25 @@
-import optuna
-import pandas as pd
-import numpy as np
-import pandas_ta as pta
-from finta import TA as fta
-import talib as tta
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics.pairwise import euclidean_distances
-from optuna.trial import TrialState
-from timeit import default_timer as timer
-from tuneta.utils import col_name
-from tuneta.utils import distance_correlation
-from yellowbrick.cluster import KElbowVisualizer
-from tuneta.utils import remove_consecutive_duplicates_and_nans
 import json
 import warnings
+from timeit import default_timer as timer
+
+import numpy as np
+import optuna
+import pandas as pd
+import pandas_ta as pta
+import talib as tta
+from finta import TA as fta
+from optuna.trial import TrialState
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.preprocessing import MinMaxScaler
+from yellowbrick.cluster import KElbowVisualizer
+
+from tuneta.utils import (
+    col_name,
+    distance_correlation,
+    remove_consecutive_duplicates_and_nans,
+)
+
 warnings.filterwarnings("ignore")
 
 
@@ -24,7 +29,9 @@ def trial_results(X, function, trial, sym=None):
         level_name = X.index.names[1]
         X = X.droplevel(1)
     try:
-        res = eval(function)  # Eval contains reference to best trial (in argument) to re-use original parameters
+        res = eval(
+            function
+        )  # Eval contains reference to best trial (in argument) to re-use original parameters
     except Exception as e:
         raise Exception(e)
     if isinstance(res, tuple):
@@ -57,7 +64,10 @@ def _trial(self, trial, X):
     :return:
     """
     if X.index.nlevels == 2:  # support 2 level inddex (data/symbol)
-        res = [trial_results(X, self.function, trial, sym=sym) for sym, X in X.groupby(level=1)]
+        res = [
+            trial_results(X, self.function, trial, sym=sym)
+            for sym, X in X.groupby(level=1)
+        ]
         res = pd.concat(res, axis=0).sort_index()
     else:
         res = trial_results(X, self.function, trial)
@@ -103,7 +113,7 @@ def _early_stopping_opt(study, trial):
             study.early_stop_count = 0
             raise optuna.exceptions.OptunaError
         else:
-            study.early_stop_count = study.early_stop_count+1
+            study.early_stop_count = study.early_stop_count + 1
     return
 
 
@@ -141,7 +151,10 @@ def _objective(self, trial, X, y):
     # Execute trial function
     # try:
     if X.index.nlevels == 2:
-        res = [eval_res(X, self.function, self.idx, trial, sym=sym) for sym, X in X.groupby(level=1)]
+        res = [
+            eval_res(X, self.function, self.idx, trial, sym=sym)
+            for sym, X in X.groupby(level=1)
+        ]
         res = pd.concat(res, axis=0).sort_index()
     else:
         res = eval_res(X, self.function, self.idx, trial)
@@ -155,16 +168,18 @@ def _objective(self, trial, X, y):
     # Obtain distance correlation
     # Ensure results and target are aligned with target by index
     res_tgt = pd.concat([res_y, y], axis=1)
-    res_tgt.columns = ['results', 'target']
+    res_tgt.columns = ["results", "target"]
 
     # Measure Correlation
-    fvi = res_tgt['results'].first_valid_index()
+    fvi = res_tgt["results"].first_valid_index()
     if fvi is None:
         correlation = np.nan
     else:
         res_tgt = res_tgt[res_tgt.index >= fvi]
         res_tgt.dropna(inplace=True)
-        correlation = distance_correlation(np.array(res_tgt.target), np.array(res_tgt.results))
+        correlation = distance_correlation(
+            np.array(res_tgt.target), np.array(res_tgt.results)
+        )
 
     # Save results
     trial.set_user_attr("correlation", correlation)
@@ -173,7 +188,7 @@ def _objective(self, trial, X, y):
     return correlation
 
 
-class Optimize():
+class Optimize:
     def __init__(self, function, n_trials=100, remove_consecutive_duplicates=False):
         self.function = function
         self.n_trials = n_trials
@@ -199,7 +214,9 @@ class Optimize():
 
         # Create optuna study maximizing correlation
         sampler = optuna.samplers.TPESampler(seed=123)
-        self.study = optuna.create_study(direction='maximize', study_name=self.function, sampler=sampler)
+        self.study = optuna.create_study(
+            direction="maximize", study_name=self.function, sampler=sampler
+        )
 
         # Set required early stopping variables
         self.study.early_stop = early_stop
@@ -208,24 +225,41 @@ class Optimize():
 
         # Start optimization trial
         try:
-            self.study.optimize(lambda trial: _objective(self, trial, X, y),
-                n_trials=self.n_trials, callbacks=[_early_stopping_opt], n_jobs=1)
+            self.study.optimize(
+                lambda trial: _objective(self, trial, X, y),
+                n_trials=self.n_trials,
+                callbacks=[_early_stopping_opt],
+                n_jobs=1,
+            )
 
         # Early stopping (not officially supported by Optuna)
         except optuna.exceptions.OptunaError:
             pass
 
-        if len([t for t in self.study.trials if t.state == TrialState.COMPLETE]) == 0:  # Min 1 complete trial
+        if (
+            len([t for t in self.study.trials if t.state == TrialState.COMPLETE]) == 0
+        ):  # Min 1 complete trial
             return self
         elif self.n_trials == 1:  # Indicators with no parameters
             best_trial = 0
         else:
             # Unique trials (converts params to json for duplicate comparison)
-            trials = pd.DataFrame([[t.number, t.user_attrs['correlation'], t.params, json.dumps(t.params)] for t in self.study.trials if t.state == TrialState.COMPLETE])
-            trials.columns = ['trial', 'correlation', 'params', 'json']
-            trials.set_index('trial', drop=True, inplace=True)
-            trials = trials[~trials.json.duplicated(keep='first')]
-            trials = trials.drop(columns=['json'])
+            trials = pd.DataFrame(
+                [
+                    [
+                        t.number,
+                        t.user_attrs["correlation"],
+                        t.params,
+                        json.dumps(t.params),
+                    ]
+                    for t in self.study.trials
+                    if t.state == TrialState.COMPLETE
+                ]
+            )
+            trials.columns = ["trial", "correlation", "params", "json"]
+            trials.set_index("trial", drop=True, inplace=True)
+            trials = trials[~trials.json.duplicated(keep="first")]
+            trials = trials.drop(columns=["json"])
 
             # Scaler for cluster scoring
             mms = MinMaxScaler()
@@ -237,24 +271,33 @@ class Optimize():
             if len(correlations) <= 7:
                 num_clusters = 1
             else:
-                max_clusters = int(min([20, len(correlations)/2]))
+                max_clusters = int(min([20, len(correlations) / 2]))
                 ke = KElbowVisualizer(KMeans(random_state=123), k=(1, max_clusters))
                 ke.fit(correlations)
                 num_clusters = ke.elbow_value_
                 if num_clusters is None:
-                    num_clusters = int(len(correlations) * .2)
-            kmeans = KMeans(n_clusters=num_clusters, random_state=123).fit(correlations.reshape(-1, 1))
+                    num_clusters = int(len(correlations) * 0.2)
+            kmeans = KMeans(n_clusters=num_clusters, random_state=123).fit(
+                correlations.reshape(-1, 1)
+            )
 
             # Mean correlation per cluster, membership and score
-            cluster_mean_correlation = [np.mean(trials[(kmeans.labels_ == c)].correlation) for c in range(num_clusters)]
+            cluster_mean_correlation = [
+                np.mean(trials[(kmeans.labels_ == c)].correlation)
+                for c in range(num_clusters)
+            ]
             cluster_members = [(kmeans.labels_ == c).sum() for c in range(num_clusters)]
             clusters = pd.DataFrame([cluster_mean_correlation, cluster_members]).T
-            clusters.columns = ['mean_correlation', 'members']
+            clusters.columns = ["mean_correlation", "members"]
 
             # Choose best cluster
-            df = pd.DataFrame(mms.fit_transform(clusters), index=clusters.index, columns=clusters.columns)
-            clusters['score'] = df['mean_correlation'] + df['members']
-            clusters = clusters.sort_values(by='score', ascending=False)
+            df = pd.DataFrame(
+                mms.fit_transform(clusters),
+                index=clusters.index,
+                columns=clusters.columns,
+            )
+            clusters["score"] = df["mean_correlation"] + df["members"]
+            clusters = clusters.sort_values(by="score", ascending=False)
             cluster = clusters.score.idxmax()
 
             # Trials of best cluster
@@ -271,37 +314,48 @@ class Optimize():
                 num_clusters = 1
             else:
                 # Clusters of trial parameters for best correlation cluster
-                max_clusters = int(min([20, len(params)/2]))
+                max_clusters = int(min([20, len(params) / 2]))
                 ke = KElbowVisualizer(KMeans(random_state=123), k=(1, max_clusters))
                 ke.fit(params)
                 num_clusters = ke.elbow_value_
                 if num_clusters is None:
-                    num_clusters = int(len(params) * .2)
+                    num_clusters = int(len(params) * 0.2)
             kmeans = KMeans(n_clusters=num_clusters, random_state=123).fit(params)
 
             # Mean correlation per cluster, membership and score
-            cluster_mean_correlation = [np.mean(trials[(kmeans.labels_ == c)].correlation) for c in range(num_clusters)]
+            cluster_mean_correlation = [
+                np.mean(trials[(kmeans.labels_ == c)].correlation)
+                for c in range(num_clusters)
+            ]
             cluster_members = [(kmeans.labels_ == c).sum() for c in range(num_clusters)]
             clusters = pd.DataFrame([cluster_mean_correlation, cluster_members]).T
-            clusters.columns = ['mean_correlation', 'members']
+            clusters.columns = ["mean_correlation", "members"]
 
             # Choose best cluster
-            df = pd.DataFrame(mms.fit_transform(clusters), index=clusters.index, columns=clusters.columns)
-            clusters['score'] = df['mean_correlation'] + df['members']
-            clusters = clusters.sort_values(by='score', ascending=False)
+            df = pd.DataFrame(
+                mms.fit_transform(clusters),
+                index=clusters.index,
+                columns=clusters.columns,
+            )
+            clusters["score"] = df["mean_correlation"] + df["members"]
+            clusters = clusters.sort_values(by="score", ascending=False)
             cluster = clusters.score.idxmax()
 
             # Choose center of cluster
             center = kmeans.cluster_centers_[cluster]
             center_matrix = np.vstack((center, params))
-            distances = pd.DataFrame(euclidean_distances(center_matrix)[1:, :], index=trials.index)[0]
+            distances = pd.DataFrame(
+                euclidean_distances(center_matrix)[1:, :], index=trials.index
+            )[0]
             best_trial = distances.sort_values().index[0]
 
             # look = trials[kmeans.labels_ == cluster]
 
         self.study.set_user_attr("best_trial_number", best_trial)
         self.study.set_user_attr("best_trial", self.study.trials[best_trial])
-        self.study.set_user_attr("name", col_name(self.function, self.study.trials[best_trial].params))
+        self.study.set_user_attr(
+            "name", col_name(self.function, self.study.trials[best_trial].params)
+        )
 
         end_time = timer()
         self.time = round(end_time - start_time, 2)
@@ -316,5 +370,5 @@ class Optimize():
         """
 
         # Calculate and store in features, replacing any potential non-finites (not sure needed)
-        features = _trial(self, self.study.user_attrs['best_trial'], X)
+        features = _trial(self, self.study.user_attrs["best_trial"], X)
         return features
