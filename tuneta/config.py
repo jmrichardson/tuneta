@@ -41,7 +41,6 @@ tune_params = [
     "lower_length",
     "lower_period",
     "ma_length",
-    "mamode",
     "max_lookback",
     "maxperiod",
     "medium",
@@ -335,7 +334,7 @@ pandas_ta_indicators = [
     "pta.aberration",
     "pta.accbands",
     "pta.atr",
-    "pta.atrts",
+    # "pta.atrts", # remove when pandas-ta development is merged
     "pta.bbands",
     "pta.donchian",
     "pta.hwc",
