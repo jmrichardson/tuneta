@@ -1,10 +1,11 @@
 # from tuneta.optimize import _weighted_spearman
-import pandas as pd
-from tabulate import tabulate
-import numpy as np
 import re
-from scipy.spatial.distance import squareform, pdist
+
 import dcor
+import numpy as np
+import pandas as pd
+from scipy.spatial.distance import pdist, squareform
+from tabulate import tabulate
 
 
 def col_name(function, study_best_params):
@@ -19,13 +20,17 @@ def col_name(function, study_best_params):
     function_name = function.split("(")[0].replace(".", "_")
 
     # Optuna string of parameters
-    params = re.sub('[^0-9a-zA-Z_:,]', '', str(study_best_params)).replace(",", "_").replace(":", "_")
+    params = (
+        re.sub("[^0-9a-zA-Z_:,]", "", str(study_best_params))
+        .replace(",", "_")
+        .replace(":", "_")
+    )
 
     # Concatenate name and params to define
     col = f"{function_name}_{params}"
 
     # Remove any trailing underscores
-    col = re.sub(r'_$', '', col)
+    col = re.sub(r"_$", "", col)
     return col
 
 
@@ -35,14 +40,12 @@ def distance_correlation(a, b):
 
 def remove_consecutive_duplicates_and_nans(s):
     shifted = s.astype(object).shift(-1, fill_value=object())
-    return s.loc[
-        (shifted != s)
-        & ~(shifted.isna() & s.isna())
-    ]
+    return s.loc[(shifted != s) & ~(shifted.isna() & s.isna())]
 
 
 # import seaborn as sns
 # import matplotlib.pyplot as plt
+
 
 def gen_plot(indicators, title):
     data = pd.DataFrame()
@@ -52,19 +55,18 @@ def gen_plot(indicators, title):
         for trial in fitted.study.trials:
             print(trial)
             fitted.fitness.append(trial.value)
-            fitted.length.append(trial.params['length'])
+            fitted.length.append(trial.params["length"])
         fitted.fitness = pd.Series(fitted.fitness, name="Correlation")
         fitted.length = pd.Series(fitted.length, name="Length")
         fitted.data = pd.DataFrame([fitted.fitness, fitted.length]).T
-        fitted.fn = fitted.function.split('(')[0]
-        fitted.data['Indicator'] = fitted.fn
+        fitted.fn = fitted.function.split("(")[0]
+        fitted.data["Indicator"] = fitted.fn
         data = pd.concat([data, fitted.data])
-        fitted.x = fitted.study.best_params['length']
+        fitted.x = fitted.study.best_params["length"]
         fitted.y = fitted.study.best_value
 
     plt.figure(figsize=(10, 6))
     sns.scatterplot(x="Length", y="Correlation", data=data, hue="Indicator")
     plt.title(title)
     for fit in indicators.fitted:
-        plt.vlines(x=fit.x, ymin=0, ymax=fit.y, linestyles='dotted')
-
+        plt.vlines(x=fit.x, ymin=0, ymax=fit.y, linestyles="dotted")
