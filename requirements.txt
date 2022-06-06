@@ -3,7 +3,7 @@ finta
 ta-lib
 pathos
 tabulate
-dcor
+dcor==0.5
 yfinance
 optuna
 yellowbrick
@@ -11,3 +11,4 @@ scikit-learn
 pandas
 numpy
 numba
+kmodes
