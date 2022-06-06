@@ -41,6 +41,7 @@ tune_params = [
     "lower_length",
     "lower_period",
     "ma_length",
+    "mamode",
     "max_lookback",
     "maxperiod",
     "medium",
@@ -279,7 +280,7 @@ pandas_ta_indicators = [
     "pta.hilo",
     "pta.hl2",
     "pta.hlc3",
-    # "pta.hma", # remove when pandas-ta development is merged
+    # "pta.hma", # does not accept low ranges
     "pta.hwma",
     "pta.ichimoku",
     "pta.jma",
@@ -366,6 +367,26 @@ pandas_ta_indicators = [
     # "pta.vwma", # remove when pandas-ta development is merged
     # "pta.wb_tsv", # remove when pandas-ta development is merged
 ]
+
+pandas_ta_mamodes = {
+    "dema": 0,
+    "ema": 1,
+    "fwma": 2,
+    "hma": 3,
+    "linreg": 4,
+    "midpoint": 5,
+    "pwma": 6,
+    "rma": 7,
+    "sinwma": 8,
+    "sma": 9,
+    "swma": 10,
+    "t3": 11,
+    "tema": 12,
+    "trima": 13,
+    "vidya": 14,
+    "wma": 15,
+    "zlma": 16,
+}
 
 finta_indicatrs = [
     "fta.SMA",
