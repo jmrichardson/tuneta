@@ -17,9 +17,9 @@ if __name__ == "__main__":
     # Optimize indicators
     tt.fit(X_train, y_train,
         indicators=['pta.slope', 'pta.stoch', 'tta.MACD', 'tta.MOM', 'fta.SMA'],
-        ranges=[(2, 60)],
-        trials=500,
-        early_stop=100,
+        ranges=[(4, 60)],
+        trials=300,
+        early_stop=50,
     )
 
     # Show time duration in seconds per indicator

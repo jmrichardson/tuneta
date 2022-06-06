@@ -17,9 +17,9 @@ if __name__ == "__main__":
     # Optimize indicators
     tt.fit(X_train, y_train,
         indicators=['tta.RSI'],
-        ranges=[(2, 30), (31, 180)],
-        trials=500,
-        early_stop=100,
+        ranges=[(4, 30), (31, 180)],
+        trials=300,
+        early_stop=50,
     )
 
     # Show correlation of indicators
