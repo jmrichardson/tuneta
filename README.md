@@ -89,7 +89,7 @@ Install using Colab:
 For simplicity, lets optimize a single indicator:
 
 * RSI Indicator
-* Two time periods (short and long term): 2-30 and 31-180
+* Two time periods (short and long term): 4-30 and 31-180
 * Maximum of 100 trials per time period to search for the best indicator parameter
 * Stop after 20 trials per time period without improvement
 
@@ -99,7 +99,7 @@ The following is a snippet of the complete example found in the examples directo
 tt = TuneTA(n_jobs=4, verbose=True)
 tt.fit(X_train, y_train,
     indicators=['tta.RSI'],
-    ranges=[(2, 30), (31, 180)],
+    ranges=[(4, 30), (31, 180)],
     trials=100,
     early_stop=20,
 )
@@ -152,12 +152,12 @@ Date
 Building from the previous example, lets optimize a handful of indicators:
 
 * Basket of indicators from 3 different packages ([TA-Lib](https://github.com/mrjbq7/ta-lib), [Pandas-TA](https://github.com/twopirllc/pandas-ta), [FinTA](https://github.com/peerchemist/finta))
-* One time period: 2-60
+* One time period: 4-60
 
 ```python
 tt.fit(X_train, y_train,
     indicators=['pta.slope', 'pta.stoch', 'tta.MACD', 'tta.MOM', 'fta.SMA'],
-    ranges=[(2, 60)],
+    ranges=[(4, 60)],
     trials=100,
     early_stop=20,
 )
@@ -242,7 +242,7 @@ Building from the previous examples, lets optimize all available indicators.  No
 ```python
 tt.fit(X_train, y_train,
     indicators=['all'],
-    ranges=[(2, 30)],
+    ranges=[(4, 30)],
     trials=500,
     early_stop=100,
     min_target_correlation=.05,
