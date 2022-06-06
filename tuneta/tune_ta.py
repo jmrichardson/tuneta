@@ -44,6 +44,7 @@ class TuneTA:
         indicators=["tta"],
         ranges=[(3, 180)],
         early_stop=99999,
+        max_clusters=10,
         min_target_correlation=0.001,
         remove_consecutive_duplicates=False,
     ):
@@ -134,7 +135,26 @@ class TuneTA:
                         fn += f"X.{param}, "
                     elif param in tune_params:
                         suggest = True
-                        fn += f"{param}=trial.suggest_int('{param}', {low}, {high}), "
+                        if param == "mamode":
+                            if "pta" in fn and not any(
+                                [
+                                    indicator
+                                    for indicator in [
+                                        "inertia",
+                                        "qqe",
+                                        "kama",
+                                        "smma",
+                                        "zlma",
+                                        "rvi",
+                                    ]
+                                    if (indicator in fn)
+                                ]
+                            ):
+                                fn += f"{param}=trial.suggest_categorical('{param}', {pandas_ta_mamodes}), "
+                        else:
+                            fn += (
+                                f"{param}=trial.suggest_int('{param}', {low}, {high}), "
+                            )
                 if "pta" in fn:
                     fn += "lookahead=False, "
                 fn += ")"
@@ -151,6 +171,7 @@ class TuneTA:
                             X,
                             y,
                             idx=idx,
+                            max_clusters=max_clusters,
                             verbose=self.verbose,
                             early_stop=early_stop,
                         )
@@ -166,6 +187,7 @@ class TuneTA:
                             X,
                             y,
                             idx=idx,
+                            max_clusters=max_clusters,
                             verbose=self.verbose,
                             early_stop=early_stop,
                         )

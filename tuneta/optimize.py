@@ -8,12 +8,14 @@ import pandas as pd
 import pandas_ta as pta
 import talib as tta
 from finta import TA as fta
+from kmodes.kprototypes import KPrototypes
 from optuna.trial import TrialState
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 from sklearn.preprocessing import MinMaxScaler
 from yellowbrick.cluster import KElbowVisualizer
 
+from tuneta.config import pandas_ta_mamodes
 from tuneta.utils import (
     col_name,
     distance_correlation,
@@ -160,26 +162,33 @@ def _objective(self, trial, X, y):
         res = eval_res(X, self.function, self.idx, trial)
 
     # y may be a subset of X, so reduce result to y and convert to series
-    res_y = res.reindex(y.index).iloc[:, 0].replace([np.inf, -np.inf], np.nan)
-
-    if self.remove_consecutive_duplicates:
-        res_y = remove_consecutive_duplicates_and_nans(res_y)
-
-    # Obtain distance correlation
-    # Ensure results and target are aligned with target by index
-    res_tgt = pd.concat([res_y, y], axis=1)
-    res_tgt.columns = ["results", "target"]
-
-    # Measure Correlation
-    fvi = res_tgt["results"].first_valid_index()
-    if fvi is None:
+    if res.empty:
+        res_y = None
         correlation = np.nan
     else:
-        res_tgt = res_tgt[res_tgt.index >= fvi]
-        res_tgt.dropna(inplace=True)
-        correlation = distance_correlation(
-            np.array(res_tgt.target), np.array(res_tgt.results)
-        )
+        res_y = res.reindex(y.index).iloc[:, 0].replace([np.inf, -np.inf], np.nan)
+
+        if self.remove_consecutive_duplicates:
+            res_y = remove_consecutive_duplicates_and_nans(res_y)
+
+        # Obtain distance correlation
+        # Ensure results and target are aligned with target by index
+        res_tgt = pd.concat([res_y, y], axis=1)
+        res_tgt.columns = ["results", "target"]
+
+        # Measure Correlation
+        fvi = res_tgt["results"].first_valid_index()
+        if fvi is None:
+            correlation = np.nan
+        else:
+            res_tgt = res_tgt[res_tgt.index >= fvi]
+            res_tgt.dropna(inplace=True)
+            if np.all((np.array(res_tgt.results) == 0)):
+                correlation = np.nan
+            else:
+                correlation = distance_correlation(
+                    np.array(res_tgt.target), np.array(res_tgt.results)
+                )
 
     # Save results
     trial.set_user_attr("correlation", correlation)
@@ -194,7 +203,7 @@ class Optimize:
         self.n_trials = n_trials
         self.remove_consecutive_duplicates = remove_consecutive_duplicates
 
-    def fit(self, X, y, idx=0, verbose=False, early_stop=None):
+    def fit(self, X, y, idx=0, max_clusters=10, verbose=False, early_stop=None):
         """
         Optimize a technical indicator
         :param X: Historical dataset
@@ -213,7 +222,7 @@ class Optimize:
             optuna.logging.set_verbosity(optuna.logging.ERROR)
 
         # Create optuna study maximizing correlation
-        sampler = optuna.samplers.TPESampler(seed=123)
+        sampler = optuna.samplers.TPESampler(seed=42)
         self.study = optuna.create_study(
             direction="maximize", study_name=self.function, sampler=sampler
         )
@@ -271,13 +280,13 @@ class Optimize:
             if len(correlations) <= 7:
                 num_clusters = 1
             else:
-                max_clusters = int(min([20, len(correlations) / 2]))
-                ke = KElbowVisualizer(KMeans(random_state=123), k=(1, max_clusters))
+                num_clusters = int(min([max_clusters * 2, len(correlations) / 2]))
+                ke = KElbowVisualizer(KMeans(random_state=42), k=(1, num_clusters))
                 ke.fit(correlations)
                 num_clusters = ke.elbow_value_
                 if num_clusters is None:
                     num_clusters = int(len(correlations) * 0.2)
-            kmeans = KMeans(n_clusters=num_clusters, random_state=123).fit(
+            kmeans = KMeans(n_clusters=num_clusters, random_state=42).fit(
                 correlations.reshape(-1, 1)
             )
 
@@ -309,18 +318,36 @@ class Optimize:
             for i in range(0, num_params):
                 params.append([list(p.values())[i] for p in trials.params])
             params = np.nan_to_num(np.array(params).T)
-
+            if "mamode" in list(
+                trials.params[trials.params.first_valid_index()].keys()
+            ):
+                index = list(
+                    trials.params[trials.params.first_valid_index()].keys()
+                ).index("mamode")
+                params[:, index] = np.vectorize(pandas_ta_mamodes.get)(params[:, index])
+                params = params.astype(float)
             if len(params) <= 7:
                 num_clusters = 1
             else:
                 # Clusters of trial parameters for best correlation cluster
-                max_clusters = int(min([20, len(params) / 2]))
-                ke = KElbowVisualizer(KMeans(random_state=123), k=(1, max_clusters))
-                ke.fit(params)
+                num_clusters = int(min([max_clusters, len(params) / 2]))
+                if "index" in locals():
+                    ke = KElbowVisualizer(
+                        KPrototypes(random_state=42), k=(1, num_clusters)
+                    )
+                    ke.fit(params, categorical=[index])
+                else:
+                    ke = KElbowVisualizer(KMeans(random_state=42), k=(1, num_clusters))
+                    ke.fit(params)
                 num_clusters = ke.elbow_value_
                 if num_clusters is None:
                     num_clusters = int(len(params) * 0.2)
-            kmeans = KMeans(n_clusters=num_clusters, random_state=123).fit(params)
+            if "index" in locals():
+                kmeans = KPrototypes(n_clusters=num_clusters, random_state=42).fit(
+                    params, categorical=[index]
+                )
+            else:
+                kmeans = KMeans(n_clusters=num_clusters, random_state=42).fit(params)
 
             # Mean correlation per cluster, membership and score
             cluster_mean_correlation = [
@@ -342,7 +369,10 @@ class Optimize:
             cluster = clusters.score.idxmax()
 
             # Choose center of cluster
-            center = kmeans.cluster_centers_[cluster]
+            if "index" in locals():
+                center = kmeans.cluster_centroids_[cluster]
+            else:
+                center = kmeans.cluster_centers_[cluster]
             center_matrix = np.vstack((center, params))
             distances = pd.DataFrame(
                 euclidean_distances(center_matrix)[1:, :], index=trials.index
