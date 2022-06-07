@@ -372,7 +372,7 @@ pandas_ta_mamodes = {
     "dema": 0,
     "ema": 1,
     "fwma": 2,
-    "hma": 3,
+    # "hma": 3,  # Issue with low range https://github.com/jmrichardson/tuneta/pull/24
     "linreg": 4,
     "midpoint": 5,
     "pwma": 6,
