@@ -18,7 +18,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name="tuneta",
-    version="0.1.42",
+    version="0.1.43",
     author="John Richardson",
     author_email="jmrichardson@gmail.com",
     description="Optimize financial technical indicators for machine learning",
