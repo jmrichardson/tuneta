@@ -12,7 +12,6 @@ import pandas_ta as pta
 import talib as tta
 from finta import TA as fta
 from joblib import Parallel, delayed
-from pathos.multiprocessing import ProcessPool
 from scipy.spatial.distance import squareform
 from tabulate import tabulate
 
@@ -69,7 +68,6 @@ class TuneTA:
 
         self.fitted = []  # List containing each indicator completed study
         X.columns = X.columns.str.lower()  # columns must be lower case
-        pool = ProcessPool(nodes=self.n_jobs)  # Set parallel cores
 
         # Package level optimization
         if "tta" in indicators:
@@ -92,6 +90,7 @@ class TuneTA:
         # Parameters contained in config.py are tuned
 
         # Iterate user defined search space ranges
+        tasks = []
         for low, high in ranges:
             if low <= 1:
                 raise ValueError("Range low must be > 1")
@@ -161,40 +160,22 @@ class TuneTA:
 
                 # Only optimize indicators that contain tunable parameters
                 if suggest:
-                    self.fitted.append(
-                        pool.apipe(
-                            Optimize(
-                                function=fn,
-                                n_trials=trials,
-                                remove_consecutive_duplicates=remove_consecutive_duplicates,
-                            ).fit,
-                            X,
-                            y,
-                            idx=idx,
-                            max_clusters=max_clusters,
-                            verbose=self.verbose,
-                            early_stop=early_stop,
-                        )
+                    tasks.append(
+                        delayed(Optimize(
+                            function=fn,
+                            n_trials=trials,
+                            remove_consecutive_duplicates=remove_consecutive_duplicates,
+                        ).fit)(X, y, idx=idx, max_clusters=max_clusters, verbose=self.verbose, early_stop=early_stop)
                     )
                 else:
-                    self.fitted.append(
-                        pool.apipe(
-                            Optimize(
-                                function=fn,
-                                n_trials=1,
-                                remove_consecutive_duplicates=remove_consecutive_duplicates,
-                            ).fit,
-                            X,
-                            y,
-                            idx=idx,
-                            max_clusters=max_clusters,
-                            verbose=self.verbose,
-                            early_stop=early_stop,
-                        )
+                    tasks.append(
+                        delayed(Optimize(
+                            function=fn,
+                            n_trials=1,
+                            remove_consecutive_duplicates=remove_consecutive_duplicates,
+                        ).fit)(X, y, idx=idx, max_clusters=max_clusters, verbose=self.verbose, early_stop=early_stop)
                     )
-
-        # Blocking wait to retrieve results
-        self.fitted = [fit.get() for fit in self.fitted]
+        self.fitted = Parallel(n_jobs=self.n_jobs)(tasks)
 
         # Fits must contain best trial data
         self.fitted = [f for f in self.fitted if len(f.study.user_attrs) > 0]
@@ -281,28 +262,26 @@ class TuneTA:
         self.target_corr()
         self.features_corr()
 
+    from joblib import Parallel, delayed
+
     def transform(self, X, columns=None):
         """
         Given X, create features of fitted studies
         :param X: Dataset with features used to create fitted studies
-        :return:
+        :return: a DataFrame with the results
         """
-        # Remove trailing identifier in column list if present
-        if columns is not None:
-            columns = [re.sub(r"_[0-9]+$", "", s) for s in columns]
-
         X.columns = X.columns.str.lower()  # columns must be lower case
-        pool = ProcessPool(nodes=self.n_jobs)  # Number of jobs
         self.result = []
 
-        # Iterate fitted studies and calculate TA with fitted parameter set
-        for ind in self.fitted:
-            # Create field if no columns or is in columns list
-            if columns is None or ind.res_y.name in columns:
-                self.result.append(pool.apipe(ind.transform, X))
+        # Create a Parallel object with the number of jobs
+        parallel = Parallel(n_jobs=self.n_jobs)
 
-        # Blocking wait for asynchronous results
-        self.result = [res.get() for res in self.result]
+        # Call the transform method for each fitted study in parallel using joblib's delayed function
+        # Each call to delayed returns a function that will be called by joblib
+        tasks = (delayed(ind.transform)(X) for ind in self.fitted)
+
+        # Run the tasks in parallel and collect the results
+        self.result = parallel(tasks)
 
         # Combine results into dataframe to return
         res = pd.concat(self.result, axis=1)
