@@ -194,6 +194,7 @@ class TuneTA:
             key=lambda x: x.study.user_attrs["best_trial"].value,
             reverse=True,
         )
+        return self
 
     def prune(self, max_inter_correlation=0.7, top_prior=99999, top_post=99999):
         """
@@ -261,8 +262,8 @@ class TuneTA:
         # Recalculate correlation of fits
         self.target_corr()
         self.features_corr()
+        return self
 
-    from joblib import Parallel, delayed
 
     def transform(self, X, columns=None):
         """
@@ -323,6 +324,7 @@ class TuneTA:
         )
         correlations = squareform(correlations)
         self.f_corr = pd.DataFrame(correlations, columns=fns, index=fns)
+        return self
 
     def report(self, target_corr=True, features_corr=True):
         if target_corr:
