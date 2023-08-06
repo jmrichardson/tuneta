@@ -180,6 +180,9 @@ class TuneTA:
         # Fits must contain best trial data
         self.fitted = [f for f in self.fitted if len(f.study.user_attrs) > 0]
 
+        if len(self.fitted) == 0:
+            raise RuntimeError("No successful trials")
+
         # Remove any fits with less than minimum target correlation
         self.fitted = [
             f
@@ -194,6 +197,8 @@ class TuneTA:
             key=lambda x: x.study.user_attrs["best_trial"].value,
             reverse=True,
         )
+
+
         return self
 
     def prune(self, max_inter_correlation=0.7, top_prior=99999, top_post=99999):
