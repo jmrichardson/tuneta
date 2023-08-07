@@ -356,7 +356,7 @@ class TuneTA:
         self,
         X,
         y,
-        min_target_correlation=0.05,
+        min_target_correlation=0.001,
         max_inter_correlation=0.7,
         report=True,
         top_prior=99999,

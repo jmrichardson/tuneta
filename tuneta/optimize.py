@@ -329,17 +329,20 @@ class Optimize:
             if len(params) <= 7:
                 num_clusters = 1
             else:
-                # Clusters of trial parameters for best correlation cluster
-                num_clusters = int(min([max_clusters, len(params) / 2]))
-                if "index" in locals():
-                    ke = KElbowVisualizer(
-                        KPrototypes(random_state=42), k=(1, num_clusters)
-                    )
-                    ke.fit(params, categorical=[index])
-                else:
-                    ke = KElbowVisualizer(KMeans(random_state=42), k=(1, num_clusters))
-                    ke.fit(params)
-                num_clusters = ke.elbow_value_
+                try:
+                    # Clusters of trial parameters for best correlation cluster
+                    num_clusters = int(min([max_clusters, len(params) / 2]))
+                    if "index" in locals():
+                        ke = KElbowVisualizer(
+                            KPrototypes(random_state=42), k=(1, num_clusters)
+                        )
+                        ke.fit(params, categorical=[index])
+                    else:
+                        ke = KElbowVisualizer(KMeans(random_state=42), k=(1, num_clusters))
+                        ke.fit(params)
+                    num_clusters = ke.elbow_value_
+                except Exception as e:
+                    num_clusters = None
                 if num_clusters is None:
                     num_clusters = int(len(params) * 0.2)
             if "index" in locals():
