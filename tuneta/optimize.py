@@ -345,6 +345,10 @@ class Optimize:
                     num_clusters = None
                 if num_clusters is None:
                     num_clusters = int(len(params) * 0.2)
+
+            # Scale parameters for clustering
+            params = mms.fit_transform(params)
+
             if "index" in locals():
                 kmeans = KPrototypes(n_clusters=num_clusters, random_state=42).fit(
                     params, categorical=[index]
